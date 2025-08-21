@@ -1,0 +1,49 @@
+{
+  "exportInfo": {
+    "timestamp": "2025-08-17T21:51:05.721Z",
+    "version": "1.0.0",
+    "format": "json",
+    "generator": "CryptoKeyFinder"
+  },
+  "statistics": {
+    "totalArtifacts": 3,
+    "validArtifacts": 3,
+    "artifactsWithBalance": 2,
+    "totalBalance": "1.247 BTC equivalent"
+  },
+  "artifacts": [
+    {
+      "id": "btc_key_001",
+      "type": "PRIVATE_KEY",
+      "cryptocurrency": "Bitcoin",
+      "status": "VALID",
+      "source": "file_scan",
+      "path": "/evidence/wallet_backup/keys.txt",
+      "confidence": 95,
+      "balance": "0.00234567 BTC",
+      "data": "L1aW4aubDFB7yfras2S1..."
+    },
+    {
+      "id": "eth_addr_002",
+      "type": "ADDRESS",
+      "cryptocurrency": "Ethereum",
+      "status": "VALID",
+      "source": "autopsy_case",
+      "path": "/case_data/artifacts.db",
+      "confidence": 88,
+      "balance": "1.245 ETH",
+      "data": "0x742d35CC6129Cec28d..."
+    },
+    {
+      "id": "bip39_003",
+      "type": "SEED_PHRASE",
+      "cryptocurrency": "Multi",
+      "status": "VALID",
+      "source": "direct_input",
+      "path": "user_input",
+      "confidence": 100,
+      "balance": "Multiple wallets",
+      "data": "abandon abandon aban..."
+    }
+  ]
+}

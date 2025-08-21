@@ -1,0 +1,14 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=CryptoKey Finder
+Comment=Find and validate cryptocurrency keys, addresses, and seed phrases
+Exec=/home/dd/Projects/CryptoKeyValidator/launch-cryptokeyfinder.sh
+Icon=/home/dd/Projects/CryptoKeyValidator/app-electron/assets/icon.png
+Terminal=false
+StartupNotify=true
+Categories=Utility;Security;Development;
+Keywords=crypto;cryptocurrency;bitcoin;ethereum;wallet;key;validation;scanner;
+StartupWMClass=cryptokeyfinder
+Path=/home/dd/Projects/CryptoKeyValidator
+MimeType=text/plain;

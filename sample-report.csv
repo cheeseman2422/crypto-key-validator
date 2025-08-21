@@ -1,0 +1,4 @@
+ID,Type,Cryptocurrency,Status,Source,Path,Confidence,Balance
+btc_key_001,PRIVATE_KEY,Bitcoin,VALID,file_scan,/evidence/wallet_backup/keys.txt,95%,0.00234567 BTC
+eth_addr_002,ADDRESS,Ethereum,VALID,autopsy_case,/case_data/artifacts.db,88%,1.245 ETH
+bip39_003,SEED_PHRASE,Multi,VALID,direct_input,user_input,100%,Multiple wallets
