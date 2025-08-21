@@ -1,0 +1,25 @@
+{
+  "name": "crypto-key-validator",
+  "version": "1.1.0",
+  "description": "Professional cryptocurrency forensics and validation toolkit (BTC/ETH/BIP39) with real scanning and reporting",
+  "bin": {
+    "ckv": "cli.js"
+  },
+  "scripts": {
+    "demo": "node demo-crypto-validation.js",
+    "scan": "node real-crypto-scan.js",
+    "report": "node generate-sample-report.js",
+    "start": "node real-crypto-scan.js"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "dependencies": {
+    "bip32": "^6.0.3",
+    "bip39": "^3.1.0",
+    "bitcoinjs-lib": "^6.1.6",
+    "ethers": "^6.13.4",
+    "tiny-secp256k1": "^2.2.3"
+  }
+}
+

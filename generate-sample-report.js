@@ -134,8 +134,9 @@ function generateHTMLReport() {
 </body>
 </html>`;
 
-    fs.writeFileSync('/home/dd/CryptoKeyValidator/sample-report.html', html);
-    console.log('✅ HTML Report generated: sample-report.html');
+    const out = path.join(__dirname, 'sample-report.html');
+    fs.writeFileSync(out, html);
+    console.log('✅ HTML Report generated:', out);
 }
 
 // Generate JSON Export
@@ -159,8 +160,9 @@ function generateJSONReport() {
         }))
     };
 
-    fs.writeFileSync('/home/dd/CryptoKeyValidator/sample-report.json', JSON.stringify(report, null, 2));
-    console.log('✅ JSON Report generated: sample-report.json');
+    const out = path.join(__dirname, 'sample-report.json');
+    fs.writeFileSync(out, JSON.stringify(report, null, 2));
+    console.log('✅ JSON Report generated:', out);
 }
 
 // Generate CSV Export
@@ -178,8 +180,9 @@ function generateCSVReport() {
     ]);
 
     const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
-    fs.writeFileSync('/home/dd/CryptoKeyValidator/sample-report.csv', csv);
-    console.log('✅ CSV Report generated: sample-report.csv');
+    const out = path.join(__dirname, 'sample-report.csv');
+    fs.writeFileSync(out, csv);
+    console.log('✅ CSV Report generated:', out);
 }
 
 // Generate all reports
