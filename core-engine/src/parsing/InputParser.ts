@@ -48,37 +48,101 @@ export class InputParser {
 
   private initializePatterns() {
     try {
-      // Bitcoin patterns
-      this.patterns.set('bitcoin_address', [
-        /\b[13][a-km-zA-HJ-NP-Z1-9]{25,34}\b/g,  // Legacy
-        /\bbc1[a-z0-9]{39,59}\b/g                 // Bech32
+      // Bitcoin address patterns - comprehensive coverage
+      this.patterns.set('bitcoin_address_legacy', [
+        /\b1[a-km-zA-HJ-NP-Z1-9]{25,34}\b/g,     // P2PKH Legacy (starts with 1)
+      ]);
+      
+      this.patterns.set('bitcoin_address_p2sh', [
+        /\b3[a-km-zA-HJ-NP-Z1-9]{25,34}\b/g,     // P2SH (starts with 3)
+      ]);
+      
+      this.patterns.set('bitcoin_address_bech32', [
+        /\bbc1q[a-z0-9]{38,62}\b/g,               // P2WPKH/P2WSH Bech32 (bc1q)
+      ]);
+      
+      this.patterns.set('bitcoin_address_taproot', [
+        /\bbc1p[a-z0-9]{56,58}\b/g,               // P2TR Taproot (bc1p)
+      ]);
+      
+      // Bitcoin testnet addresses
+      this.patterns.set('bitcoin_testnet_address', [
+        /\b[mn][a-km-zA-HJ-NP-Z1-9]{25,34}\b/g,  // Testnet legacy (m/n prefix)
+        /\b2[a-km-zA-HJ-NP-Z1-9]{25,34}\b/g,     // Testnet P2SH
+        /\btb1[a-z0-9]{38,62}\b/g,               // Testnet bech32
       ]);
 
-      // Ethereum patterns
-      this.patterns.set('ethereum_address', [
-        /\b0x[a-fA-F0-9]{40}\b/g
+      // Bitcoin private keys - comprehensive WIF formats
+      this.patterns.set('bitcoin_private_key_wif', [
+        /\b5[1-9A-HJ-NP-Za-km-z]{50}\b/g,        // WIF Uncompressed (starts with 5)
+        /\b[KL][1-9A-HJ-NP-Za-km-z]{51}\b/g,     // WIF Compressed (starts with K or L)
       ]);
-
-      // Monero patterns
-      this.patterns.set('monero_address', [
-        /\b4[0-9AB][1-9A-HJ-NP-Za-km-z]{93}\b/g,  // Standard
-        /\b8[0-9AB][1-9A-HJ-NP-Za-km-z]{93}\b/g   // Integrated
+      
+      // Bitcoin private keys - testnet WIF
+      this.patterns.set('bitcoin_testnet_private_key', [
+        /\b9[1-9A-HJ-NP-Za-km-z]{50}\b/g,        // Testnet WIF Uncompressed
+        /\bc[1-9A-HJ-NP-Za-km-z]{51}\b/g,        // Testnet WIF Compressed
       ]);
-
-      // Private key patterns
-      this.patterns.set('private_key', [
-        /\b[KL5][1-9A-HJ-NP-Za-km-z]{51}\b/g,     // Bitcoin WIF
-        /\b[59][1-9A-HJ-NP-Za-km-z]{50}\b/g,      // Bitcoin WIF compressed
-        /\b[a-fA-F0-9]{64}\b/g                    // Raw hex key
+      
+      // Bitcoin extended keys (HD wallets)
+      this.patterns.set('bitcoin_extended_key_xpub', [
+        /\bxpub[1-9A-HJ-NP-Za-km-z]{107,108}\b/g, // BIP32 Master Public Key
       ]);
-
-      // Seed phrase patterns
-      this.patterns.set('seed_phrase', [
-        /\b(?:[a-z]+\s+){11}[a-z]+\b/gi,          // 12 words
-        /\b(?:[a-z]+\s+){14}[a-z]+\b/gi,          // 15 words
-        /\b(?:[a-z]+\s+){17}[a-z]+\b/gi,          // 18 words
-        /\b(?:[a-z]+\s+){20}[a-z]+\b/gi,          // 21 words
-        /\b(?:[a-z]+\s+){23}[a-z]+\b/gi           // 24 words
+      
+      this.patterns.set('bitcoin_extended_key_xprv', [
+        /\bxprv[1-9A-HJ-NP-Za-km-z]{107,108}\b/g, // BIP32 Master Private Key
+      ]);
+      
+      this.patterns.set('bitcoin_extended_key_ypub', [
+        /\bypub[1-9A-HJ-NP-Za-km-z]{107,108}\b/g, // BIP49 P2SH-wrapped SegWit
+      ]);
+      
+      this.patterns.set('bitcoin_extended_key_yprv', [
+        /\byprv[1-9A-HJ-NP-Za-km-z]{107,108}\b/g, // BIP49 P2SH-wrapped SegWit Private
+      ]);
+      
+      this.patterns.set('bitcoin_extended_key_zpub', [
+        /\bzpub[1-9A-HJ-NP-Za-km-z]{107,108}\b/g, // BIP84 Native SegWit
+      ]);
+      
+      this.patterns.set('bitcoin_extended_key_zprv', [
+        /\bzprv[1-9A-HJ-NP-Za-km-z]{107,108}\b/g, // BIP84 Native SegWit Private
+      ]);
+      
+      // Bitcoin raw private keys
+      this.patterns.set('bitcoin_private_key_hex', [
+        /\b[a-fA-F0-9]{64}\b/g,                   // 32-byte hex private key
+      ]);
+      
+      // Bitcoin mini private keys (Casascius)
+      this.patterns.set('bitcoin_mini_private_key', [
+        /\bS[1-9A-HJ-NP-Za-km-z]{21,29}\b/g,     // Mini private key format
+      ]);
+      
+      // BIP38 encrypted private keys
+      this.patterns.set('bitcoin_bip38_encrypted_key', [
+        /\b6P[1-9A-HJ-NP-Za-km-z]{56}\b/g,       // BIP38 encrypted key (6P prefix)
+      ]);
+      
+      // Bitcoin seed phrases (BIP39) - more precise patterns
+      this.patterns.set('bitcoin_seed_phrase_12', [
+        /\b(?:[a-z]{3,8}\s+){11}[a-z]{3,8}\b/gi, // 12 words, 3-8 chars each
+      ]);
+      
+      this.patterns.set('bitcoin_seed_phrase_15', [
+        /\b(?:[a-z]{3,8}\s+){14}[a-z]{3,8}\b/gi, // 15 words
+      ]);
+      
+      this.patterns.set('bitcoin_seed_phrase_18', [
+        /\b(?:[a-z]{3,8}\s+){17}[a-z]{3,8}\b/gi, // 18 words
+      ]);
+      
+      this.patterns.set('bitcoin_seed_phrase_21', [
+        /\b(?:[a-z]{3,8}\s+){20}[a-z]{3,8}\b/gi, // 21 words
+      ]);
+      
+      this.patterns.set('bitcoin_seed_phrase_24', [
+        /\b(?:[a-z]{3,8}\s+){23}[a-z]{3,8}\b/gi, // 24 words
       ]);
 
       // Patterns initialized
@@ -366,13 +430,45 @@ export class InputParser {
     const fileName = path.basename(filePath).toLowerCase();
     const fileExt = path.extname(filePath).toLowerCase();
     
-    // Check for known wallet files
+    // Bitcoin wallet file types - comprehensive detection
     const walletTypes = [
-      { name: 'Bitcoin Core', files: ['wallet.dat'], dirs: ['wallets'] },
-      { name: 'Electrum', files: ['default_wallet'], extensions: ['.wallet'] },
-      { name: 'Exodus', files: ['seed.seco', 'info.seco'] },
-      { name: 'MetaMask', files: ['vault'] },
-      { name: 'Monero', extensions: ['.wallet', '.keys'] }
+      // Bitcoin Core wallets
+      { name: 'Bitcoin Core Legacy', files: ['wallet.dat'], dirs: ['wallets'], crypto: 'bitcoin' },
+      { name: 'Bitcoin Core Descriptor', extensions: ['.dat'], patterns: ['wallet_'], crypto: 'bitcoin' },
+      
+      // Electrum wallets
+      { name: 'Electrum', files: ['default_wallet'], extensions: ['.wallet'], crypto: 'bitcoin' },
+      { name: 'Electrum Portable', patterns: ['electrum'], extensions: ['.wallet'], crypto: 'bitcoin' },
+      
+      // Hardware wallet files
+      { name: 'Ledger', files: ['ledger.dat'], patterns: ['ledger'], crypto: 'bitcoin' },
+      { name: 'Trezor', files: ['trezor.dat'], patterns: ['trezor'], crypto: 'bitcoin' },
+      { name: 'Hardware Wallet Backup', extensions: ['.backup', '.hww'], crypto: 'bitcoin' },
+      
+      // Desktop wallet applications
+      { name: 'Bitcoin Knots', files: ['wallet.dat'], dirs: ['BitcoinKnots'], crypto: 'bitcoin' },
+      { name: 'Exodus Bitcoin', files: ['seed.seco', 'info.seco'], dirs: ['Exodus'], crypto: 'bitcoin' },
+      { name: 'Atomic Wallet', files: ['wallet.dat'], dirs: ['atomic'], crypto: 'bitcoin' },
+      { name: 'Wasabi Wallet', files: ['wallet.json'], dirs: ['WalletWasabi'], crypto: 'bitcoin' },
+      
+      // Mobile wallet backups
+      { name: 'Bitcoin Mobile Backup', extensions: ['.aes', '.backup', '.json'], patterns: ['bitcoin', 'btc'], crypto: 'bitcoin' },
+      
+      // Paper/Brain wallet files
+      { name: 'Paper Wallet', extensions: ['.html', '.pdf'], patterns: ['bitaddress', 'paperwallet'], crypto: 'bitcoin' },
+      { name: 'Brain Wallet', files: ['brain.txt', 'passphrase.txt'], crypto: 'bitcoin' },
+      
+      // Bitcoin configuration and data files
+      { name: 'Bitcoin Config', files: ['bitcoin.conf'], crypto: 'bitcoin' },
+      { name: 'Bitcoin Debug Log', files: ['debug.log'], dirs: ['.bitcoin', 'Bitcoin'], crypto: 'bitcoin' },
+      
+      // Lightning Network files
+      { name: 'Lightning Network', files: ['channel.backup'], dirs: ['lnd', 'lightning'], crypto: 'bitcoin' },
+      { name: 'LND Wallet', files: ['wallet.db'], dirs: ['lnd'], crypto: 'bitcoin' },
+      
+      // Exchange and service exports
+      { name: 'Bitcoin Exchange Export', extensions: ['.csv'], patterns: ['bitcoin', 'btc'], crypto: 'bitcoin' },
+      { name: 'Blockchain.info Backup', extensions: ['.aes'], patterns: ['blockchain'], crypto: 'bitcoin' }
     ];
 
     for (const walletType of walletTypes) {
@@ -663,21 +759,74 @@ export class InputParser {
   }
 
   /**
-   * Helper methods
+   * Enhanced helper methods for Bitcoin pattern recognition
    */
   private getArtifactTypeFromPattern(patternType: string): ArtifactType {
+    // Bitcoin address patterns
     if (patternType.includes('address')) return ArtifactType.ADDRESS;
-    if (patternType.includes('private_key')) return ArtifactType.PRIVATE_KEY;
+    
+    // Bitcoin private key patterns
+    if (patternType.includes('private_key') || patternType.includes('extended_key') || patternType.includes('bip38') || patternType.includes('mini_private_key')) {
+      return ArtifactType.PRIVATE_KEY;
+    }
+    
+    // Bitcoin seed phrase patterns
     if (patternType.includes('seed_phrase')) return ArtifactType.SEED_PHRASE;
+    
     return ArtifactType.ADDRESS; // default
   }
 
   private getCryptocurrencyFromPattern(patternType: string): CryptocurrencyType {
-    if (patternType.includes('bitcoin')) return this.cryptocurrencyTypes.get('bitcoin')!;
+    // All patterns are Bitcoin-focused now
+    if (patternType.includes('bitcoin') || patternType.includes('testnet')) {
+      return this.cryptocurrencyTypes.get('bitcoin')!;
+    }
+    
+    // Legacy support (will be removed)
     if (patternType.includes('ethereum')) return this.cryptocurrencyTypes.get('ethereum')!;
     if (patternType.includes('monero')) return this.cryptocurrencyTypes.get('monero')!;
     if (patternType.includes('litecoin')) return this.cryptocurrencyTypes.get('litecoin')!;
-    return this.cryptocurrencyTypes.get('bitcoin')!; // default
+    
+    return this.cryptocurrencyTypes.get('bitcoin')!; // Bitcoin is default
+  }
+
+  /**
+   * Get detailed Bitcoin pattern information
+   */
+  private getBitcoinPatternDetails(patternType: string): { addressType: string, network: string, keyType?: string } {
+    // Address types
+    if (patternType.includes('address_legacy')) return { addressType: 'P2PKH', network: 'mainnet' };
+    if (patternType.includes('address_p2sh')) return { addressType: 'P2SH', network: 'mainnet' };
+    if (patternType.includes('address_bech32')) return { addressType: 'P2WPKH/P2WSH', network: 'mainnet' };
+    if (patternType.includes('address_taproot')) return { addressType: 'P2TR', network: 'mainnet' };
+    if (patternType.includes('testnet_address')) return { addressType: 'Testnet', network: 'testnet' };
+    
+    // Private key types
+    if (patternType.includes('private_key_wif')) return { addressType: 'WIF', network: 'mainnet', keyType: 'private' };
+    if (patternType.includes('testnet_private_key')) return { addressType: 'WIF', network: 'testnet', keyType: 'private' };
+    if (patternType.includes('private_key_hex')) return { addressType: 'Raw Hex', network: 'mainnet', keyType: 'private' };
+    if (patternType.includes('mini_private_key')) return { addressType: 'Mini Key', network: 'mainnet', keyType: 'private' };
+    if (patternType.includes('bip38_encrypted_key')) return { addressType: 'BIP38', network: 'mainnet', keyType: 'encrypted' };
+    
+    // Extended keys
+    if (patternType.includes('extended_key_xpub')) return { addressType: 'BIP32 xpub', network: 'mainnet', keyType: 'public' };
+    if (patternType.includes('extended_key_xprv')) return { addressType: 'BIP32 xprv', network: 'mainnet', keyType: 'private' };
+    if (patternType.includes('extended_key_ypub')) return { addressType: 'BIP49 ypub', network: 'mainnet', keyType: 'public' };
+    if (patternType.includes('extended_key_yprv')) return { addressType: 'BIP49 yprv', network: 'mainnet', keyType: 'private' };
+    if (patternType.includes('extended_key_zpub')) return { addressType: 'BIP84 zpub', network: 'mainnet', keyType: 'public' };
+    if (patternType.includes('extended_key_zprv')) return { addressType: 'BIP84 zprv', network: 'mainnet', keyType: 'private' };
+    
+    // Seed phrases
+    if (patternType.includes('seed_phrase')) {
+      const wordCount = patternType.includes('_12') ? '12' : 
+                       patternType.includes('_15') ? '15' : 
+                       patternType.includes('_18') ? '18' : 
+                       patternType.includes('_21') ? '21' : 
+                       patternType.includes('_24') ? '24' : 'unknown';
+      return { addressType: `BIP39 ${wordCount} words`, network: 'mainnet', keyType: 'seed' };
+    }
+    
+    return { addressType: 'Unknown', network: 'mainnet' };
   }
 
   private async calculateFileHash(filePath: string): Promise<string> {
