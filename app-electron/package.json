@@ -20,18 +20,18 @@
   },
   "dependencies": {
     "@crypto-validator/core-engine": "workspace:*",
+    "bip32": "^4.0.0",
     "bip39": "^3.1.0",
     "bitcoinjs-lib": "^6.1.5",
-    "bip32": "^4.0.0",
-    "ecpair": "^2.1.0",
-    "tiny-secp256k1": "^2.2.3",
     "bs58": "^5.0.0",
     "chokidar": "^3.5.3",
+    "ecpair": "^2.1.0",
     "electron-store": "^8.1.0",
     "keytar": "^7.9.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "sqlite3": "^5.1.6"
+    "sqlite3": "^5.1.6",
+    "tiny-secp256k1": "^2.2.3"
   },
   "devDependencies": {
     "@heroicons/react": "^2.0.18",
@@ -41,7 +41,7 @@
     "@vitejs/plugin-react": "^4.2.0",
     "autoprefixer": "^10.4.16",
     "concurrently": "^8.2.2",
-    "electron": "^27.3.11",
+    "electron": "^37.3.1",
     "electron-builder": "^24.6.4",
     "postcss": "^8.4.32",
     "tailwindcss": "^3.3.6",
