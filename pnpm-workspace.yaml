@@ -1,0 +1,11 @@
+packages:
+  - app-electron
+  - core-engine
+
+onlyBuiltDependencies:
+  - classic-level
+  - electron
+  - esbuild
+  - keytar
+  - secp256k1
+  - sqlite3

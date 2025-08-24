@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="64" cy="64" r="60" fill="#1a1a2e" stroke="#16213e" stroke-width="4"/>
+  
+  <!-- Bitcoin symbol background -->
+  <circle cx="64" cy="64" r="45" fill="#f7931a" opacity="0.1"/>
+  
+  <!-- Key shape -->
+  <g fill="#f7931a" stroke="#f7931a" stroke-width="2">
+    <!-- Key shaft -->
+    <rect x="35" y="60" width="40" height="8" rx="4"/>
+    
+    <!-- Key head (circle) -->
+    <circle cx="45" cy="64" r="12" fill="none" stroke-width="3"/>
+    
+    <!-- Key teeth -->
+    <rect x="70" y="60" width="6" height="4"/>
+    <rect x="70" y="68" width="10" height="4"/>
+    <rect x="70" y="52" width="8" height="4"/>
+  </g>
+  
+  <!-- Magnifying glass -->
+  <g fill="none" stroke="#00d4ff" stroke-width="3">
+    <!-- Glass circle -->
+    <circle cx="85" cy="45" r="12"/>
+    <!-- Handle -->
+    <line x1="95" y1="55" x2="105" y2="65"/>
+  </g>
+  
+  <!-- Binary code pattern -->
+  <text x="20" y="95" font-family="monospace" font-size="8" fill="#00ff88" opacity="0.6">101010</text>
+  <text x="75" y="110" font-family="monospace" font-size="8" fill="#00ff88" opacity="0.6">110011</text>
+  
+  <!-- Central Bitcoin symbol -->
+  <text x="64" y="72" font-family="Arial Black" font-size="16" fill="#f7931a" text-anchor="middle" font-weight="bold">₿</text>
+</svg>

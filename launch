@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# Silent Launcher for CryptoKey Finder
+# Starts the application without terminal output
+
+# Set the application directory
+APP_DIR="/home/bb/crypto-key-validator-transfer"
+ELECTRON_DIR="$APP_DIR/app-electron"
+
+# Kill any existing instances first
+pkill -f "electron.*crypto-key-validator" 2>/dev/null || true
+
+# Change to the app directory
+cd "$ELECTRON_DIR" || exit 1
+
+# Launch Electron silently in the background
+# Redirect all output to /dev/null to suppress terminal messages
+nohup pnpm run electron > /dev/null 2>&1 &
+
+# Exit the launcher script immediately
+exit 0

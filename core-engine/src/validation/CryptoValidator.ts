@@ -1,0 +1,446 @@
+import * as bip39 from 'bip39';
+import * as bitcoin from 'bitcoinjs-lib';
+import { ethers } from 'ethers';
+import * as bs58 from 'bs58';
+import * as crypto from 'crypto';
+
+// Import ECPair factory - bitcoinjs-lib v6 requires this pattern
+const ECPairFactory = require('ecpair');
+const ecc = require('tiny-secp256k1');
+const ECPair = ECPairFactory.default(ecc);
+
+// HDKey import
+const HDKey = require('hdkey');
+
+// Define ECPairInterface type
+interface ECPairInterface {
+  publicKey: Buffer;
+  privateKey?: Buffer;
+  toWIF(): string;
+  sign(hash: Buffer): Buffer;
+  verify(hash: Buffer, signature: Buffer): boolean;
+}
+
+import {
+  Artifact,
+  ArtifactType,
+  ValidationResult,
+  ValidationStatus,
+  CryptocurrencyType,
+  DerivedAddress,
+  ValidationError
+} from '../types';
+
+export class CryptoValidator {
+  private readonly supportedNetworks: Map<string, any> = new Map();
+
+  constructor() {
+    this.initializeNetworks();
+  }
+
+  private initializeNetworks() {
+    // Bitcoin networks
+    this.supportedNetworks.set('bitcoin', bitcoin.networks.bitcoin);
+    this.supportedNetworks.set('bitcoin-testnet', bitcoin.networks.testnet);
+    this.supportedNetworks.set('litecoin', {
+      messagePrefix: '\x19Litecoin Signed Message:\n',
+      bech32: 'ltc',
+      bip32: { public: 0x019da462, private: 0x019d9cfe },
+      pubKeyHash: 0x30,
+      scriptHash: 0x32,
+      wif: 0xb0
+    });
+  }
+
+  /**
+   * Validate a cryptocurrency artifact
+   */
+  async validateArtifact(artifact: Artifact): Promise<ValidationResult> {
+    try {
+      switch (artifact.type) {
+        case ArtifactType.PRIVATE_KEY:
+          return await this.validatePrivateKey(artifact);
+        case ArtifactType.SEED_PHRASE:
+          return await this.validateSeedPhrase(artifact);
+        case ArtifactType.ADDRESS:
+          return await this.validateAddress(artifact);
+        default:
+          throw new ValidationError(`Unsupported artifact type: ${artifact.type}`, 'UNSUPPORTED_TYPE');
+      }
+    } catch (error) {
+      return {
+        isValid: false,
+        errors: [error instanceof Error ? error.message : 'Unknown validation error'],
+        warnings: []
+      };
+    }
+  }
+
+  /**
+   * Validate private key formats
+   */
+  private async validatePrivateKey(artifact: Artifact): Promise<ValidationResult> {
+    const { raw, metadata } = artifact;
+    const crypto = metadata.cryptocurrency;
+    const result: ValidationResult = {
+      isValid: false,
+      errors: [],
+      warnings: [],
+      derivedAddresses: []
+    };
+
+    try {
+      // Remove whitespace and normalize
+      const cleanKey = raw.replace(/\s+/g, '');
+
+      switch (crypto.name.toLowerCase()) {
+        case 'bitcoin':
+        case 'litecoin':
+          return await this.validateBitcoinPrivateKey(cleanKey, crypto);
+        case 'ethereum':
+          return await this.validateEthereumPrivateKey(cleanKey);
+        default:
+          result.errors.push(`Unsupported cryptocurrency: ${crypto.name}`);
+      }
+    } catch (error) {
+      result.errors.push(`Validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+
+    return result;
+  }
+
+  /**
+   * Validate Bitcoin-like private keys (WIF format or hex)
+   */
+  private async validateBitcoinPrivateKey(key: string, crypto: CryptocurrencyType): Promise<ValidationResult> {
+    const result: ValidationResult = {
+      isValid: false,
+      errors: [],
+      warnings: [],
+      derivedAddresses: []
+    };
+
+    const network = this.supportedNetworks.get(crypto.name.toLowerCase());
+    if (!network) {
+      result.errors.push(`Network not supported: ${crypto.name}`);
+      return result;
+    }
+
+    try {
+      let keyPair: ECPairInterface;
+
+      // Try WIF format first
+      if (key.length >= 51 && key.length <= 52) {
+        try {
+          keyPair = ECPair.fromWIF(key, network);
+          result.checksum = true;
+        } catch (wifError) {
+          result.errors.push('Invalid WIF format');
+          return result;
+        }
+      }
+      // Try hex format
+      else if (key.length === 64 && /^[a-fA-F0-9]+$/.test(key)) {
+        try {
+          const keyBuffer = Buffer.from(key, 'hex');
+          keyPair = ECPair.fromPrivateKey(keyBuffer, { network });
+          result.warnings.push('Private key in raw hex format (less secure)');
+        } catch (hexError) {
+          result.errors.push('Invalid hex private key');
+          return result;
+        }
+      } else {
+        result.errors.push('Invalid private key format (expected WIF or 64-char hex)');
+        return result;
+      }
+
+      // Generate addresses
+      const addresses = this.generateBitcoinAddresses(keyPair, network);
+      result.derivedAddresses = addresses;
+      result.isValid = true;
+
+    } catch (error) {
+      result.errors.push(`Bitcoin key validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+
+    return result;
+  }
+
+  /**
+   * Generate Bitcoin addresses from a key pair
+   */
+  private generateBitcoinAddresses(keyPair: ECPairInterface, network: any): DerivedAddress[] {
+    const addresses: DerivedAddress[] = [];
+
+    try {
+      // P2PKH (Legacy)
+      const p2pkh = bitcoin.payments.p2pkh({ pubkey: keyPair.publicKey, network });
+      if (p2pkh.address) {
+        addresses.push({
+          address: p2pkh.address,
+          derivationPath: 'direct',
+          addressType: 'P2PKH',
+          publicKey: keyPair.publicKey.toString('hex')
+        });
+      }
+
+      // P2WPKH (SegWit)
+      const p2wpkh = bitcoin.payments.p2wpkh({ pubkey: keyPair.publicKey, network });
+      if (p2wpkh.address) {
+        addresses.push({
+          address: p2wpkh.address,
+          derivationPath: 'direct',
+          addressType: 'P2WPKH',
+          publicKey: keyPair.publicKey.toString('hex')
+        });
+      }
+
+      // P2SH-P2WPKH (SegWit wrapped)
+      const p2sh = bitcoin.payments.p2sh({
+        redeem: bitcoin.payments.p2wpkh({ pubkey: keyPair.publicKey, network }),
+        network
+      });
+      if (p2sh.address) {
+        addresses.push({
+          address: p2sh.address,
+          derivationPath: 'direct',
+          addressType: 'P2SH-P2WPKH',
+          publicKey: keyPair.publicKey.toString('hex')
+        });
+      }
+    } catch (error) {
+      console.warn('Address generation failed:', error);
+    }
+
+    return addresses;
+  }
+
+  /**
+   * Validate Ethereum private keys
+   */
+  private async validateEthereumPrivateKey(key: string): Promise<ValidationResult> {
+    const result: ValidationResult = {
+      isValid: false,
+      errors: [],
+      warnings: [],
+      derivedAddresses: []
+    };
+
+    try {
+      // Remove 0x prefix if present
+      const cleanKey = key.startsWith('0x') ? key.slice(2) : key;
+
+      if (cleanKey.length !== 64 || !/^[a-fA-F0-9]+$/.test(cleanKey)) {
+        result.errors.push('Invalid Ethereum private key format (expected 64-char hex)');
+        return result;
+      }
+
+      const wallet = new ethers.Wallet(cleanKey);
+      
+      result.derivedAddresses = [{
+        address: wallet.address,
+        derivationPath: 'direct',
+        addressType: 'Standard',
+        publicKey: wallet.signingKey.publicKey
+      }];
+
+      result.isValid = true;
+      result.checksum = true;
+
+    } catch (error) {
+      result.errors.push(`Ethereum key validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+
+    return result;
+  }
+
+  /**
+   * Validate seed phrases (mnemonic)
+   */
+  private async validateSeedPhrase(artifact: Artifact): Promise<ValidationResult> {
+    const { raw } = artifact;
+    const result: ValidationResult = {
+      isValid: false,
+      errors: [],
+      warnings: [],
+      derivedAddresses: []
+    };
+
+    try {
+      const mnemonic = raw.trim().toLowerCase();
+      const words = mnemonic.split(/\s+/);
+
+      // Check word count
+      const validWordCounts = [12, 15, 18, 21, 24];
+      if (!validWordCounts.includes(words.length)) {
+        result.errors.push(`Invalid word count: ${words.length}. Expected: ${validWordCounts.join(', ')}`);
+        return result;
+      }
+
+      // Validate mnemonic
+      if (!bip39.validateMnemonic(mnemonic)) {
+        result.errors.push('Invalid BIP39 mnemonic phrase');
+        return result;
+      }
+
+      // Calculate entropy
+      const entropy = bip39.mnemonicToEntropy(mnemonic);
+      result.entropy = (entropy.length / 2) * 8; // bits
+
+      // Generate seed
+      const seed = bip39.mnemonicToSeedSync(mnemonic);
+      
+      // Derive some common addresses
+      const derivedAddresses = await this.deriveAddressesFromSeed(seed);
+      result.derivedAddresses = derivedAddresses;
+
+      result.isValid = true;
+      result.checksum = true;
+
+    } catch (error) {
+      result.errors.push(`Seed phrase validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+
+    return result;
+  }
+
+  /**
+   * Derive addresses from a seed using common derivation paths
+   */
+  private async deriveAddressesFromSeed(seed: Buffer): Promise<DerivedAddress[]> {
+    const addresses: DerivedAddress[] = [];
+    
+    try {
+      const masterKey = HDKey.fromMasterSeed(seed);
+
+      // Common derivation paths
+      const derivationPaths = [
+        "m/44'/0'/0'/0/0",    // Bitcoin first address
+        "m/44'/2'/0'/0/0",    // Litecoin first address  
+        "m/44'/60'/0'/0/0",   // Ethereum first address
+        "m/84'/0'/0'/0/0",    // Bitcoin SegWit first address
+        "m/49'/0'/0'/0/0"     // Bitcoin SegWit wrapped first address
+      ];
+
+      for (const path of derivationPaths) {
+        try {
+          const derived = masterKey.derive(path);
+          const privateKey = derived.privateKey;
+          
+          if (path.includes("44'/0'") || path.includes("84'/0'") || path.includes("49'/0'")) {
+            // Bitcoin
+            const keyPair = ECPair.fromPrivateKey(privateKey);
+            const btcAddresses = this.generateBitcoinAddresses(keyPair, bitcoin.networks.bitcoin);
+            addresses.push(...btcAddresses.map(addr => ({ ...addr, derivationPath: path })));
+          } else if (path.includes("44'/60'")) {
+            // Ethereum
+            const wallet = new ethers.Wallet(privateKey);
+            addresses.push({
+              address: wallet.address,
+              derivationPath: path,
+              addressType: 'Standard',
+              publicKey: wallet.signingKey.publicKey
+            });
+          }
+        } catch (derivationError) {
+          console.warn(`Derivation failed for path ${path}:`, derivationError);
+        }
+      }
+    } catch (error) {
+      console.warn('Seed derivation failed:', error);
+    }
+
+    return addresses;
+  }
+
+  /**
+   * Validate cryptocurrency addresses
+   */
+  private async validateAddress(artifact: Artifact): Promise<ValidationResult> {
+    const { raw, metadata } = artifact;
+    const result: ValidationResult = {
+      isValid: false,
+      errors: [],
+      warnings: []
+    };
+
+    try {
+      const address = raw.trim();
+      const crypto = metadata.cryptocurrency;
+
+      switch (crypto.name.toLowerCase()) {
+        case 'bitcoin':
+          result.isValid = this.validateBitcoinAddress(address, bitcoin.networks.bitcoin);
+          break;
+        case 'ethereum':
+          result.isValid = this.validateEthereumAddress(address);
+          break;
+        case 'litecoin':
+          const ltcNetwork = this.supportedNetworks.get('litecoin');
+          result.isValid = this.validateBitcoinAddress(address, ltcNetwork);
+          break;
+        default:
+          result.errors.push(`Address validation not implemented for: ${crypto.name}`);
+      }
+
+      if (!result.isValid && result.errors.length === 0) {
+        result.errors.push('Invalid address format');
+      }
+
+    } catch (error) {
+      result.errors.push(`Address validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+
+    return result;
+  }
+
+  /**
+   * Validate Bitcoin-like addresses
+   */
+  private validateBitcoinAddress(address: string, network: any): boolean {
+    try {
+      bitcoin.address.toOutputScript(address, network);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Validate Ethereum addresses
+   */
+  private validateEthereumAddress(address: string): boolean {
+    try {
+      return ethers.isAddress(address);
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Batch validate multiple artifacts
+   */
+  async validateBatch(artifacts: Artifact[]): Promise<Map<string, ValidationResult>> {
+    const results = new Map<string, ValidationResult>();
+    
+    // Process in batches to avoid overwhelming the system
+    const batchSize = 10;
+    
+    for (let i = 0; i < artifacts.length; i += batchSize) {
+      const batch = artifacts.slice(i, i + batchSize);
+      const batchPromises = batch.map(async artifact => {
+        const result = await this.validateArtifact(artifact);
+        return { id: artifact.id, result };
+      });
+      
+      const batchResults = await Promise.all(batchPromises);
+      batchResults.forEach(({ id, result }) => {
+        results.set(id, result);
+      });
+    }
+    
+    return results;
+  }
+}
+
+export default CryptoValidator;

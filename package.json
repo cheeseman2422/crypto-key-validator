@@ -1,0 +1,82 @@
+{
+  "name": "crypto-key-validator",
+  "version": "1.0.0",
+  "description": "Offline Cryptocurrency Key Validator and Balance Checker",
+  "private": true,
+  "workspaces": [
+    "app-electron",
+    "core-engine"
+  ],
+  "scripts": {
+    "dev": "pnpm run --parallel dev",
+    "build": "pnpm run --parallel build",
+    "build:appimage": "pnpm build && electron-builder --linux AppImage",
+    "test": "pnpm run --parallel test",
+    "lint": "eslint --ext .ts,.js .",
+    "format": "prettier --write ."
+  },
+  "main": "app-electron/dist/main.js",
+  "build": {
+    "appId": "com.forensics.crypto-key-validator",
+    "productName": "Crypto Key Validator",
+    "directories": {
+      "output": "dist-packages"
+    },
+    "files": [
+      "app-electron/dist/**/*",
+      "core-engine/dist/**/*",
+      "node_modules/**/*"
+    ],
+    "linux": {
+      "category": "Utility",
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    }
+  },
+  "devDependencies": {
+    "@types/electron": "^1.6.12",
+    "@types/node": "^20.10.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.1",
+    "@typescript-eslint/parser": "^6.13.1",
+    "electron": "^27.3.11",
+    "electron-builder": "^24.13.3",
+    "eslint": "^8.55.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-security": "^1.7.1",
+    "husky": "^8.0.3",
+    "prettier": "^3.1.0",
+    "typescript": "^5.3.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/crypto-key-validator.git"
+  },
+  "keywords": [
+    "cryptocurrency",
+    "forensics",
+    "private-keys",
+    "wallet-recovery",
+    "offline",
+    "electron",
+    "digital-forensics"
+  ],
+  "license": "MIT",
+  "author": "Forensics Team",
+  "dependencies": {
+    "bip32": "5.0.0-rc.0",
+    "bip39": "^3.1.0",
+    "bitcoinjs-lib": "^6.1.7",
+    "bs58": "^5.0.0",
+    "ecpair": "^3.0.0",
+    "ethers": "^6.15.0",
+    "hdkey": "^2.1.0",
+    "smart-buffer": "^4.2.0",
+    "tiny-secp256k1": "^2.2.4"
+  }
+}

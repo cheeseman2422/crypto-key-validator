@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "outDir": "dist/preload",
+    "rootDir": "src/preload",
+    "target": "ES2020",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "lib": ["ES2020", "DOM"],
+    "allowJs": true,
+    "declaration": false,
+    "sourceMap": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "typeRoots": ["node_modules/@types"]
+  },
+  "include": [
+    "src/preload/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

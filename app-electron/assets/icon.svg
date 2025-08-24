@@ -1,0 +1,46 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="240" fill="#1a1a1a" stroke="#4CAF50" stroke-width="8"/>
+  
+  <!-- Key symbol -->
+  <g fill="#4CAF50">
+    <!-- Key head (circle) -->
+    <circle cx="180" cy="200" r="45" fill="none" stroke="#4CAF50" stroke-width="12"/>
+    <circle cx="180" cy="200" r="20" fill="#4CAF50"/>
+    
+    <!-- Key shaft -->
+    <rect x="225" y="190" width="120" height="20" fill="#4CAF50"/>
+    
+    <!-- Key teeth -->
+    <rect x="325" y="180" width="20" height="15" fill="#4CAF50"/>
+    <rect x="310" y="180" width="15" height="10" fill="#4CAF50"/>
+  </g>
+  
+  <!-- Crypto symbols -->
+  <g fill="#66BB6A" font-family="Arial Black" font-weight="bold" font-size="28">
+    <!-- Bitcoin B -->
+    <text x="280" y="140" fill="#f7931a">₿</text>
+    <!-- Ethereum Ξ -->
+    <text x="320" y="160" fill="#627EEA">Ξ</text>
+    <!-- Dollar $ -->
+    <text x="300" y="120" fill="#2e7d32">$</text>
+  </g>
+  
+  <!-- Shield outline for security -->
+  <path d="M 380 280 L 420 320 L 460 280 L 460 380 Q 420 410 380 380 Z" 
+        fill="none" stroke="#4CAF50" stroke-width="6" opacity="0.8"/>
+  <path d="M 390 300 L 410 320 L 450 290" 
+        fill="none" stroke="#4CAF50" stroke-width="6" stroke-linecap="round"/>
+  
+  <!-- Circuit pattern -->
+  <g stroke="#4CAF50" stroke-width="2" fill="none" opacity="0.3">
+    <circle cx="120" cy="350" r="8"/>
+    <circle cx="150" cy="380" r="6"/>
+    <circle cx="90" cy="380" r="6"/>
+    <line x1="120" y1="342" x2="120" y2="320"/>
+    <line x1="128" y1="350" x2="150" y2="350"/>
+    <line x1="112" y1="350" x2="90" y2="350"/>
+    <line x1="150" y1="374" x2="150" y2="350"/>
+    <line x1="90" y1="374" x2="90" y2="350"/>
+  </g>
+</svg>
