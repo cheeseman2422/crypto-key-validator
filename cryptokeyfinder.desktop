@@ -1,14 +1,14 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=CryptoKey Finder
-Comment=Find and validate cryptocurrency keys, addresses, and seed phrases
-Exec=/home/bb/crypto-key-validator-transfer/launch
-Icon=/home/bb/crypto-key-validator-transfer/crypto-icon-large.png
+Name=Bitcoin Key Validator
+Comment=Bitcoin-only cryptocurrency artifact detector for forensics
+Exec=/home/dd/Projects/crypto-key-validator/launch-app.sh
+Icon=/home/dd/Projects/crypto-key-validator/crypto-icon-large.png
 Terminal=false
 StartupNotify=true
 Categories=Utility;Security;Development;
-Keywords=crypto;cryptocurrency;bitcoin;ethereum;wallet;key;validation;scanner;
-StartupWMClass=cryptokeyfinder
-Path=/home/bb/crypto-key-validator-transfer
+Keywords=bitcoin;btc;wallet;key;validation;scanner;forensics;testnet;
+StartupWMClass=bitcoin-key-validator
+Path=/home/dd/Projects/crypto-key-validator
 MimeType=text/plain;
