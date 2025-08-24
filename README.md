@@ -1,8 +1,10 @@
-# Cryptocurrency Key Validator
+# Crypto Key Validator
+
+A standalone desktop application for validating and analyzing cryptocurrency keys, built with Electron.
 
 ## Overview
 
-The **Cryptocurrency Key Validator** is a comprehensive, offline-capable GUI application built with Electron that validates cryptocurrency private keys, seed phrases, and wallet files, then checks their balances securely. It's designed specifically to work with outputs from the CryptocurrencyArtifactDetector and can also scan filesystems, folders, and entire drives for cryptocurrency artifacts.
+The **Crypto Key Validator** is a comprehensive, offline-capable GUI application that validates cryptocurrency private keys, seed phrases, and wallet files, then checks their balances securely. It can scan filesystems, folders, and entire drives for cryptocurrency artifacts.
 
 ## Key Features
 
