@@ -67,7 +67,7 @@ export class InputParser {
       
       // Bitcoin testnet addresses
       this.patterns.set('bitcoin_testnet_address', [
-        /\b[mn][a-km-zA-HJ-NP-Z1-9]{25,34}\b/g,  // Testnet legacy (m/n prefix)
+        /\b[mn][a-km-zA-HJ-NP-Z1-9]{25,33}\b/g,  // Testnet legacy (m/n prefix)
         /\b2[a-km-zA-HJ-NP-Z1-9]{25,34}\b/g,     // Testnet P2SH
         /\btb1[a-z0-9]{38,62}\b/g,               // Testnet bech32
       ]);
