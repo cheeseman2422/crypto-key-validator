@@ -26,9 +26,11 @@
     "bs58": "^5.0.0",
     "chokidar": "^3.5.3",
     "conf": "^14.0.0",
+    "dot-prop": "^9.0.0",
     "ecpair": "^2.1.0",
     "electron-store": "^8.2.0",
     "electron-util": "^0.18.1",
+    "env-paths": "^3.0.0",
     "fs-extra": "^11.3.1",
     "keytar": "^7.9.0",
     "react": "^18.2.0",
@@ -53,7 +55,7 @@
     "vite": "^5.0.4"
   },
   "build": {
-    "appId": "com.forensics.crypto-key-validator",
+  "appId": "com.crypto-key-validator",
     "productName": "Crypto Key Validator",
     "directories": {
       "output": "release"

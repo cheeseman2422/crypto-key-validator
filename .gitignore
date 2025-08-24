@@ -1,3 +1,11 @@
+# Node/Electron build artifacts
+app-electron/release/
+app-electron/squashfs-root/
+node_modules/
+dist/
+# OS files
+.DS_Store
+Thumbs.db
 # Dependencies
 node_modules/
 npm-debug.log*

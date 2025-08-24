@@ -36,23 +36,14 @@ export interface ArtifactSource {
   path: string;
   size?: number;
   hash?: string;
-  autopsy?: AutopsyArtifactInfo;
 }
 
 export enum SourceType {
-  AUTOPSY_EXPORT = 'autopsy_export',
   FILE_SYSTEM = 'file_system',
   DIRECT_INPUT = 'direct_input',
   DRIVE_SCAN = 'drive_scan'
 }
 
-export interface AutopsyArtifactInfo {
-  artifactId: number;
-  caseId: string;
-  objectId: number;
-  artifactTypeName: string;
-  attributes: Record<string, any>;
-}
 
 export interface ArtifactMetadata {
   cryptocurrency: CryptocurrencyType;

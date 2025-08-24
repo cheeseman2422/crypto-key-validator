@@ -96,6 +96,9 @@ importers:
       conf:
         specifier: ^14.0.0
         version: 14.0.0
+      dot-prop:
+        specifier: ^9.0.0
+        version: 9.0.0
       ecpair:
         specifier: ^2.1.0
         version: 2.1.0
@@ -105,6 +108,9 @@ importers:
       electron-util:
         specifier: ^0.18.1
         version: 0.18.1
+      env-paths:
+        specifier: ^3.0.0
+        version: 3.0.0
       fs-extra:
         specifier: ^11.3.1
         version: 11.3.1

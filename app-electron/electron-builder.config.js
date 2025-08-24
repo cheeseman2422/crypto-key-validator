@@ -1,7 +1,7 @@
 module.exports = {
-  appId: 'com.forensics.crypto-key-validator',
-  productName: 'CryptoKeyFinder',
-  copyright: 'Copyright © 2024 Forensics Team',
+  appId: 'com.crypto-key-validator',
+  productName: 'Crypto Key Validator',
+  copyright: 'Copyright © 2025 Crypto Key Validator',
   
   directories: {
     output: 'release',
@@ -45,7 +45,7 @@ module.exports = {
       { target: 'portable', arch: ['x64'] }
     ],
     icon: 'build-assets/icon.ico',
-    publisherName: 'Forensics Team',
+  publisherName: 'Crypto Key Validator',
     requestedExecutionLevel: 'asInvoker'
   },
   
@@ -64,11 +64,11 @@ module.exports = {
     allowToChangeInstallationDirectory: true,
     createDesktopShortcut: true,
     createStartMenuShortcut: true,
-    shortcutName: 'CryptoKeyFinder'
+  shortcutName: 'Crypto Key Validator'
   },
   
   dmg: {
-    title: 'CryptoKeyFinder ${version}',
+  title: 'Crypto Key Validator ${version}',
     icon: 'build-assets/icon.icns',
     background: 'build-assets/dmg-background.png',
     window: {
