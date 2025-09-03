@@ -46,14 +46,14 @@ export default class InputParser {
       return this.createArtifact(ArtifactType.ADDRESS, text, 'Legacy Address (P2PKH/P2SH)');
     }
     
-    // Bitcoin Bech32 addresses (P2WPKH/P2WSH) - starts with bc1q or bc1
-    if (/^bc1q[a-z0-9]{38}$/.test(text) || /^bc1[a-z0-9]{59}$/.test(text)) {
-      return this.createArtifact(ArtifactType.ADDRESS, text, 'Bech32 Address (P2WPKH/P2WSH)');
-    }
-    
-    // Bitcoin Taproot addresses (P2TR) - starts with bc1p
+    // Bitcoin Taproot addresses (P2TR) - starts with bc1p (check first)
     if (/^bc1p[a-z0-9]{58}$/.test(text)) {
       return this.createArtifact(ArtifactType.ADDRESS, text, 'Taproot Address (P2TR)');
+    }
+    
+    // Bitcoin Bech32 addresses (P2WPKH/P2WSH) - starts with bc1q
+    if (/^bc1q[a-z0-9]{38}$/.test(text) || /^bc1[a-z0-9]{59}$/.test(text)) {
+      return this.createArtifact(ArtifactType.ADDRESS, text, 'Bech32 Address (P2WPKH/P2WSH)');
     }
     
     // Bitcoin WIF private keys - starts with 5, K, or L

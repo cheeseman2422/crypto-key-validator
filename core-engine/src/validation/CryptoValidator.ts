@@ -8,6 +8,9 @@ const ECPairFactory = require('ecpair');
 const ecc = require('tiny-secp256k1');
 const ECPair = ECPairFactory.default(ecc);
 
+// Initialize ECC library for bitcoinjs-lib (required for Taproot)
+bitcoin.initEccLib(ecc);
+
 // HDKey import
 const HDKey = require('hdkey');
 
@@ -166,41 +169,72 @@ export class CryptoValidator {
     const addresses: DerivedAddress[] = [];
 
     try {
-      // P2PKH (Legacy)
-      const p2pkh = bitcoin.payments.p2pkh({ pubkey: keyPair.publicKey, network });
+      // Convert publicKey to Buffer if it's a Uint8Array
+      let pubkey = Buffer.isBuffer(keyPair.publicKey) ? keyPair.publicKey : Buffer.from(keyPair.publicKey);
+      
+      // Ensure we have a compressed public key for SegWit (P2WPKH requires compressed keys)
+      if (pubkey.length === 65) {
+        // Convert uncompressed to compressed
+        const isEven = (pubkey[64] % 2) === 0;
+        pubkey = Buffer.concat([Buffer.from([isEven ? 0x02 : 0x03]), pubkey.slice(1, 33)]);
+      }
+      
+      // P2PKH (Legacy) - can use both compressed and uncompressed
+      const p2pkh = bitcoin.payments.p2pkh({ pubkey, network });
       if (p2pkh.address) {
         addresses.push({
           address: p2pkh.address,
           derivationPath: 'direct',
           addressType: 'P2PKH',
-          publicKey: keyPair.publicKey.toString('hex')
+          publicKey: pubkey.toString('hex')
         });
       }
 
-      // P2WPKH (SegWit)
-      const p2wpkh = bitcoin.payments.p2wpkh({ pubkey: keyPair.publicKey, network });
-      if (p2wpkh.address) {
-        addresses.push({
-          address: p2wpkh.address,
-          derivationPath: 'direct',
-          addressType: 'P2WPKH',
-          publicKey: keyPair.publicKey.toString('hex')
+      // P2WPKH (SegWit) - requires compressed public key
+      if (pubkey.length === 33) {
+        const p2wpkh = bitcoin.payments.p2wpkh({ pubkey, network });
+        if (p2wpkh.address) {
+          addresses.push({
+            address: p2wpkh.address,
+            derivationPath: 'direct',
+            addressType: 'P2WPKH',
+            publicKey: pubkey.toString('hex')
+          });
+        }
+
+        // P2SH-P2WPKH (SegWit wrapped)
+        const p2sh = bitcoin.payments.p2sh({
+          redeem: bitcoin.payments.p2wpkh({ pubkey, network }),
+          network
         });
+        if (p2sh.address) {
+          addresses.push({
+            address: p2sh.address,
+            derivationPath: 'direct',
+            addressType: 'P2SH-P2WPKH',
+            publicKey: pubkey.toString('hex')
+          });
+        }
       }
 
-      // P2SH-P2WPKH (SegWit wrapped)
-      const p2sh = bitcoin.payments.p2sh({
-        redeem: bitcoin.payments.p2wpkh({ pubkey: keyPair.publicKey, network }),
-        network
-      });
-      if (p2sh.address) {
-        addresses.push({
-          address: p2sh.address,
-          derivationPath: 'direct',
-          addressType: 'P2SH-P2WPKH',
-          publicKey: keyPair.publicKey.toString('hex')
-        });
+      // P2TR (Taproot) - Add support for Taproot addresses
+      try {
+        // For Taproot, we need to use the internal key (x-only pubkey)
+        const internalPubkey = pubkey.slice(1, 33); // Remove the 0x02/0x03 prefix for x-only
+        const p2tr = bitcoin.payments.p2tr({ internalPubkey, network });
+        if (p2tr.address) {
+          addresses.push({
+            address: p2tr.address,
+            derivationPath: 'direct',
+            addressType: 'P2TR',
+            publicKey: pubkey.toString('hex')
+          });
+        }
+      } catch (taprootError) {
+        // Taproot may not be available in all cases, fail silently
+        console.debug('Taproot address generation failed:', taprootError);
       }
+      
     } catch (error) {
       console.warn('Address generation failed:', error);
     }
