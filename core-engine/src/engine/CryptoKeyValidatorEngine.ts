@@ -88,17 +88,21 @@ export class CryptoKeyValidatorEngine extends EventEmitter {
     }
   }
 
+
   /**
-   * Scan Autopsy case for cryptocurrency artifacts
+   * Scan filesystem for cryptocurrency artifacts
    */
-  async scanAutopsyCase(caseDatabasePath: string): Promise<Artifact[]> {
+  async scanFileSystem(rootPath: string, scanConfig?: Partial<ScanConfiguration>): Promise<Artifact[]> {
     this.validateInitialized();
     
     try {
-      this.startScan('autopsy-case');
+      this.startScan('filesystem');
       this.scanProgress.phase = ScanPhase.SCANNING;
       
-      const artifacts = await this.inputParser.parseAutopsyCase(caseDatabasePath);
+      // Use provided config or default scanning configuration
+      const config = { ...this.config.scanning, ...scanConfig };
+      
+      const artifacts = await this.inputParser.parseFileSystem(rootPath, config);
       
       // Store artifacts
       for (const artifact of artifacts) {
@@ -111,7 +115,11 @@ export class CryptoKeyValidatorEngine extends EventEmitter {
       // Validate artifacts
       await this.validateArtifacts(artifacts);
       
-      // Balance checking disabled in offline-only mode
+      // Check balances for valid artifacts (if enabled)
+      const validArtifacts = artifacts.filter(a => a.validationStatus === ValidationStatus.VALID);
+      if (validArtifacts.length > 0) {
+        await this.checkBalances(validArtifacts);
+      }
       
       this.completeScan();
       return artifacts;
@@ -120,27 +128,6 @@ export class CryptoKeyValidatorEngine extends EventEmitter {
       this.handleScanError(error);
       throw error;
     }
-  }
-
-  /**
-   * [DEPRECATED] Scan filesystem for cryptocurrency artifacts
-   * 
-   * This method is deprecated and will be removed in future versions.
-   * Use Autopsy's CryptocurrencyArtifactDetector for filesystem scanning instead,
-   * then import the results via scanAutopsyCase().
-   * 
-   * @deprecated Use scanAutopsyCase() with CryptocurrencyArtifactDetector output instead
-   */
-  async scanFileSystem(rootPath: string, scanConfig?: Partial<ScanConfiguration>): Promise<Artifact[]> {
-    this.validateInitialized();
-    console.warn(
-      '[DEPRECATED] scanFileSystem() is deprecated. ' +
-      'Use Autopsy\'s CryptocurrencyArtifactDetector for filesystem scanning instead.'
-    );
-    this.emit('security-warning', ['Using deprecated scanFileSystem method - functionality limited']);
-    
-    // Return empty artifacts array - filesystem scanning is now handled by Autopsy
-    return [];
   }
 
   /**

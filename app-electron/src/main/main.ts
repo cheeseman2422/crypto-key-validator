@@ -203,8 +203,7 @@ class CryptoKeyValidatorApp {
       const result = await dialog.showOpenDialog(this.mainWindow!, {
         properties: ['openFile'],
         filters: [
-          { name: 'All Supported', extensions: ['db', 'sqlite', 'wallet', 'dat', 'json'] },
-          { name: 'Autopsy Database', extensions: ['db', 'sqlite'] },
+          { name: 'All Supported', extensions: ['wallet', 'dat', 'json'] },
           { name: 'Wallet Files', extensions: ['wallet', 'dat'] },
           { name: 'All Files', extensions: ['*'] }
         ]
@@ -233,10 +232,6 @@ class CryptoKeyValidatorApp {
     });
 
     // Engine operations
-    ipcMain.handle('engine-scan-autopsy', async (_, caseDatabasePath: string) => {
-      if (!this.engine) throw new Error('Engine not initialized');
-      return await this.engine.scanAutopsyCase(caseDatabasePath);
-    });
 
     ipcMain.handle('engine-scan-filesystem', async (_, rootPath: string, config?: any) => {
       if (!this.engine) throw new Error('Engine not initialized');

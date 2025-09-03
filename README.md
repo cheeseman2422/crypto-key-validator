@@ -15,18 +15,19 @@ The **Crypto Key Validator** is a comprehensive, offline-capable GUI application
 - No external API calls or data transmission
 
 
-### 🔍 **Focused Input Support**
-**Direct Input**: Paste or type keys/phrases directly
-**Secure Processing**: All input is cryptographically validated before analysis
+### 🔍 **Comprehensive Input Support**
+- **Filesystem Scanning**: Deep scan of directories, drives, and specific file types
+- **Direct Input**: Paste or type keys/phrases directly
+- **Secure Processing**: All input is cryptographically validated before analysis
 
 
 
-### 💰 **Comprehensive Cryptocurrency Support**
-- **Bitcoin**: Legacy, SegWit, and Bech32 addresses
-- **Ethereum**: Standard addresses and smart contracts
-- **Monero**: Standard and integrated addresses  
-- **Litecoin**: Legacy and SegWit addresses
-- **Extensible**: Easy to add support for additional cryptocurrencies
+### 💰 **Bitcoin-Only Focus**
+- **Bitcoin Legacy**: P2PKH addresses (1xxx)
+- **Bitcoin SegWit**: P2SH-wrapped SegWit addresses (3xxx)
+- **Bitcoin Bech32**: Native SegWit addresses (bc1xxx)
+- **Bitcoin Taproot**: P2TR addresses (bc1pxxx)
+- **All Bitcoin Networks**: Mainnet, Testnet, Signet, Regtest
 
 ### ✅ **Advanced Validation Engine**
 - **Private Keys**: WIF format, hex format validation
@@ -65,7 +66,7 @@ CryptoKeyValidator/
 ├── app-electron/         # Electron GUI application
 │   ├── src/
 │   │   ├── main/         # Main Electron process
-│   │   ├── renderer/     # React frontend (to be completed)
+│   │   ├── renderer/     # React frontend with modern UI
 │   │   └── preload/      # Secure IPC bridge
 │   └── package.json
 └── docs/                 # Documentation
@@ -119,17 +120,16 @@ pnpm dist
 
 ### Input Sources
 
-
-
-#### 2. Filesystem Scanning  
+#### 1. Filesystem Scanning  
 Scan any directory or drive for cryptocurrency artifacts:
-
 - File → Scan Directory...
 - Select root directory to scan
 - Configure scan options (file types, size limits, etc.)
 - Deep scan option for binary files
+- Supports scanning compressed files and archives
+- Pattern recognition for various wallet formats
 
-#### 3. Direct Input
+#### 2. Direct Input
 Paste or type cryptocurrency data directly:
 
 - Use the input area in the main interface
@@ -143,7 +143,7 @@ Paste or type cryptocurrency data directly:
 | **Private Keys** | WIF format, raw hex | ✅ Format validation, address derivation |
 | **Seed Phrases** | BIP39 12-24 words | ✅ Mnemonic validation, entropy check |
 | **Wallet Files** | wallet.dat, *.wallet | ✅ File signature detection |
-| **Addresses** | Bitcoin, Ethereum, etc. | ✅ Checksum validation |
+| **Addresses** | Bitcoin all types | ✅ Checksum validation |
 
 ### Balance Checking
 
