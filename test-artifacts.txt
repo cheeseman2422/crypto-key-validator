@@ -1,0 +1,29 @@
+Bitcoin Test Artifacts File
+==========================
+
+This file contains various Bitcoin artifacts for testing filesystem scanning:
+
+Legacy Bitcoin Address:
+1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa
+
+P2SH Bitcoin Address:  
+3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy
+
+SegWit Bech32 Address:
+bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4
+
+Taproot Address:
+bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297
+
+Some private keys (for testing):
+WIF: 5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ
+Hex: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+
+BIP39 Seed Phrase:
+abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about
+
+Some random text that should be ignored...
+This is not a Bitcoin artifact: notavalidkey123
+Neither is this: randomtext456
+
+End of test file.
