@@ -74,7 +74,6 @@
     "bitcoinjs-lib": "^6.1.7",
     "bs58": "^5.0.0",
     "ecpair": "^3.0.0",
-    "ethers": "^6.15.0",
     "hdkey": "^2.1.0",
     "smart-buffer": "^4.2.0",
     "tiny-secp256k1": "^2.2.4"

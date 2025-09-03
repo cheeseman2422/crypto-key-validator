@@ -1,6 +1,5 @@
 import * as bip39 from 'bip39';
 import * as bitcoin from 'bitcoinjs-lib';
-import { ethers } from 'ethers';
 import * as bs58 from 'bs58';
 import * as crypto from 'crypto';
 
@@ -39,17 +38,11 @@ export class CryptoValidator {
   }
 
   private initializeNetworks() {
-    // Bitcoin networks
+    // Bitcoin networks only
     this.supportedNetworks.set('bitcoin', bitcoin.networks.bitcoin);
     this.supportedNetworks.set('bitcoin-testnet', bitcoin.networks.testnet);
-    this.supportedNetworks.set('litecoin', {
-      messagePrefix: '\x19Litecoin Signed Message:\n',
-      bech32: 'ltc',
-      bip32: { public: 0x019da462, private: 0x019d9cfe },
-      pubKeyHash: 0x30,
-      scriptHash: 0x32,
-      wif: 0xb0
-    });
+    this.supportedNetworks.set('bitcoin-signet', bitcoin.networks.regtest); // Using regtest for signet
+    this.supportedNetworks.set('bitcoin-regtest', bitcoin.networks.regtest);
   }
 
   /**
@@ -95,12 +88,12 @@ export class CryptoValidator {
 
       switch (crypto.name.toLowerCase()) {
         case 'bitcoin':
-        case 'litecoin':
+        case 'bitcoin-testnet':
+        case 'bitcoin-signet':
+        case 'bitcoin-regtest':
           return await this.validateBitcoinPrivateKey(cleanKey, crypto);
-        case 'ethereum':
-          return await this.validateEthereumPrivateKey(cleanKey);
         default:
-          result.errors.push(`Unsupported cryptocurrency: ${crypto.name}`);
+          result.errors.push(`Unsupported cryptocurrency: ${crypto.name}. Only Bitcoin is supported.`);
       }
     } catch (error) {
       result.errors.push(`Validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -215,44 +208,6 @@ export class CryptoValidator {
     return addresses;
   }
 
-  /**
-   * Validate Ethereum private keys
-   */
-  private async validateEthereumPrivateKey(key: string): Promise<ValidationResult> {
-    const result: ValidationResult = {
-      isValid: false,
-      errors: [],
-      warnings: [],
-      derivedAddresses: []
-    };
-
-    try {
-      // Remove 0x prefix if present
-      const cleanKey = key.startsWith('0x') ? key.slice(2) : key;
-
-      if (cleanKey.length !== 64 || !/^[a-fA-F0-9]+$/.test(cleanKey)) {
-        result.errors.push('Invalid Ethereum private key format (expected 64-char hex)');
-        return result;
-      }
-
-      const wallet = new ethers.Wallet(cleanKey);
-      
-      result.derivedAddresses = [{
-        address: wallet.address,
-        derivationPath: 'direct',
-        addressType: 'Standard',
-        publicKey: wallet.signingKey.publicKey
-      }];
-
-      result.isValid = true;
-      result.checksum = true;
-
-    } catch (error) {
-      result.errors.push(`Ethereum key validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-
-    return result;
-  }
 
   /**
    * Validate seed phrases (mnemonic)
@@ -313,13 +268,11 @@ export class CryptoValidator {
     try {
       const masterKey = HDKey.fromMasterSeed(seed);
 
-      // Common derivation paths
+      // Bitcoin derivation paths only
       const derivationPaths = [
-        "m/44'/0'/0'/0/0",    // Bitcoin first address
-        "m/44'/2'/0'/0/0",    // Litecoin first address  
-        "m/44'/60'/0'/0/0",   // Ethereum first address
-        "m/84'/0'/0'/0/0",    // Bitcoin SegWit first address
-        "m/49'/0'/0'/0/0"     // Bitcoin SegWit wrapped first address
+        "m/44'/0'/0'/0/0",    // Bitcoin Legacy first address (BIP44)
+        "m/84'/0'/0'/0/0",    // Bitcoin Native SegWit first address (BIP84)
+        "m/49'/0'/0'/0/0"     // Bitcoin SegWit wrapped first address (BIP49)
       ];
 
       for (const path of derivationPaths) {
@@ -327,21 +280,10 @@ export class CryptoValidator {
           const derived = masterKey.derive(path);
           const privateKey = derived.privateKey;
           
-          if (path.includes("44'/0'") || path.includes("84'/0'") || path.includes("49'/0'")) {
-            // Bitcoin
-            const keyPair = ECPair.fromPrivateKey(privateKey);
-            const btcAddresses = this.generateBitcoinAddresses(keyPair, bitcoin.networks.bitcoin);
-            addresses.push(...btcAddresses.map(addr => ({ ...addr, derivationPath: path })));
-          } else if (path.includes("44'/60'")) {
-            // Ethereum
-            const wallet = new ethers.Wallet(privateKey);
-            addresses.push({
-              address: wallet.address,
-              derivationPath: path,
-              addressType: 'Standard',
-              publicKey: wallet.signingKey.publicKey
-            });
-          }
+          // Bitcoin derivation only
+          const keyPair = ECPair.fromPrivateKey(privateKey);
+          const btcAddresses = this.generateBitcoinAddresses(keyPair, bitcoin.networks.bitcoin);
+          addresses.push(...btcAddresses.map(addr => ({ ...addr, derivationPath: path })));
         } catch (derivationError) {
           console.warn(`Derivation failed for path ${path}:`, derivationError);
         }
@@ -370,17 +312,14 @@ export class CryptoValidator {
 
       switch (crypto.name.toLowerCase()) {
         case 'bitcoin':
-          result.isValid = this.validateBitcoinAddress(address, bitcoin.networks.bitcoin);
-          break;
-        case 'ethereum':
-          result.isValid = this.validateEthereumAddress(address);
-          break;
-        case 'litecoin':
-          const ltcNetwork = this.supportedNetworks.get('litecoin');
-          result.isValid = this.validateBitcoinAddress(address, ltcNetwork);
+        case 'bitcoin-testnet':
+        case 'bitcoin-signet':
+        case 'bitcoin-regtest':
+          const network = this.supportedNetworks.get(crypto.name.toLowerCase()) || bitcoin.networks.bitcoin;
+          result.isValid = this.validateBitcoinAddress(address, network);
           break;
         default:
-          result.errors.push(`Address validation not implemented for: ${crypto.name}`);
+          result.errors.push(`Address validation not implemented for: ${crypto.name}. Only Bitcoin is supported.`);
       }
 
       if (!result.isValid && result.errors.length === 0) {
@@ -406,16 +345,6 @@ export class CryptoValidator {
     }
   }
 
-  /**
-   * Validate Ethereum addresses
-   */
-  private validateEthereumAddress(address: string): boolean {
-    try {
-      return ethers.isAddress(address);
-    } catch {
-      return false;
-    }
-  }
 
   /**
    * Batch validate multiple artifacts

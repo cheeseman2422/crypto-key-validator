@@ -1,7 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { Database } from 'sqlite3';
-import { Level } from 'level';
 
 import {
   BalanceInfo,
@@ -21,7 +20,6 @@ export class OfflineBalanceChecker implements BalanceProvider {
   private utxoCache: Map<string, UTXO[]> = new Map();
   private balanceCache: Map<string, BalanceInfo> = new Map();
   private bitcoinDb?: Database;
-  private ethereumDb?: Level<string, any>;
 
   constructor(blockchainDataPath: string) {
     this.blockchainDataPath = blockchainDataPath;
@@ -31,8 +29,7 @@ export class OfflineBalanceChecker implements BalanceProvider {
   private initializeSupportedCryptocurrencies() {
     this.supportedCryptocurrencies = [
       { name: 'Bitcoin', symbol: 'BTC', network: 'mainnet', coinType: 0 },
-      { name: 'Ethereum', symbol: 'ETH', network: 'mainnet', coinType: 60 },
-      { name: 'Litecoin', symbol: 'LTC', network: 'mainnet', coinType: 2 }
+      { name: 'Bitcoin-Testnet', symbol: 'BTC', network: 'testnet', coinType: 0 }
     ];
   }
 
@@ -42,7 +39,6 @@ export class OfflineBalanceChecker implements BalanceProvider {
   async initialize(): Promise<void> {
     try {
       await this.initializeBitcoinDatabase();
-      await this.initializeEthereumDatabase();
       // OfflineBalanceChecker initialized
     } catch (error) {
       console.error('Failed to initialize OfflineBalanceChecker:', error);
@@ -73,24 +69,6 @@ export class OfflineBalanceChecker implements BalanceProvider {
     });
   }
 
-  /**
-   * Initialize Ethereum database
-   */
-  private async initializeEthereumDatabase(): Promise<void> {
-    const ethereumDbPath = path.join(this.blockchainDataPath, 'ethereum', 'accounts.db');
-    
-    if (!fs.existsSync(ethereumDbPath)) {
-      // Ethereum database not found at: ethereumDbPath
-      return;
-    }
-
-    try {
-      this.ethereumDb = new Level(ethereumDbPath, { valueEncoding: 'json' });
-      console.log('Ethereum database opened successfully');
-    } catch (error) {
-      console.error('Failed to open Ethereum database:', error);
-    }
-  }
 
   /**
    * Get balance for a single address
@@ -112,15 +90,11 @@ export class OfflineBalanceChecker implements BalanceProvider {
 
       switch (cryptocurrency.name.toLowerCase()) {
         case 'bitcoin':
-        case 'litecoin':
           balanceInfo = await this.getBitcoinBalance(address, cryptocurrency);
-          break;
-        case 'ethereum':
-          balanceInfo = await this.getEthereumBalance(address, cryptocurrency);
           break;
         default:
           throw new BalanceCheckError(
-            `Unsupported cryptocurrency: ${cryptocurrency.name}`,
+            `Unsupported cryptocurrency: ${cryptocurrency.name}. Only Bitcoin is supported.`,
             address,
             cryptocurrency.name
           );
@@ -192,37 +166,6 @@ export class OfflineBalanceChecker implements BalanceProvider {
     });
   }
 
-  /**
-   * Get Ethereum balance from account database
-   */
-  private async getEthereumBalance(address: string, cryptocurrency: CryptocurrencyType): Promise<BalanceInfo> {
-    if (!this.ethereumDb) {
-      return this.createEmptyBalance(cryptocurrency.symbol);
-    }
-
-    try {
-      const accountData = await this.ethereumDb.get(address.toLowerCase());
-      
-      const balance = accountData?.balance || '0';
-      const nonce = accountData?.nonce || 0;
-
-      return {
-        balance: this.weiToEther(balance),
-        confirmed: this.weiToEther(balance),
-        unconfirmed: '0',
-        currency: cryptocurrency.symbol,
-        lastUpdated: new Date(),
-        transactionCount: nonce,
-        source: BalanceSource.LOCAL_BLOCKCHAIN
-      };
-    } catch (error) {
-      // Address not found in database means zero balance
-      if ((error as any).code === 'LEVEL_NOT_FOUND') {
-        return this.createEmptyBalance(cryptocurrency.symbol);
-      }
-      throw error;
-    }
-  }
 
   /**
    * Get balances for multiple addresses
@@ -264,14 +207,6 @@ export class OfflineBalanceChecker implements BalanceProvider {
     };
   }
 
-  /**
-   * Convert Wei to Ether
-   */
-  private weiToEther(wei: string): string {
-    const weiAmount = BigInt(wei);
-    const etherAmount = Number(weiAmount) / Math.pow(10, 18);
-    return etherAmount.toFixed(18);
-  }
 
   /**
    * Get summary statistics
@@ -328,9 +263,6 @@ export class OfflineBalanceChecker implements BalanceProvider {
       }));
     }
 
-    if (this.ethereumDb) {
-      promises.push(this.ethereumDb.close());
-    }
 
     await Promise.all(promises);
     console.log('OfflineBalanceChecker closed successfully');
@@ -360,7 +292,7 @@ export class BlockchainDataManager {
    */
   getDataStatus(): { [key: string]: { exists: boolean; size?: number; lastModified?: Date } } {
     const status: { [key: string]: { exists: boolean; size?: number; lastModified?: Date } } = {};
-    const cryptos = ['bitcoin', 'ethereum', 'litecoin'];
+    const cryptos = ['bitcoin'];
 
     for (const crypto of cryptos) {
       const cryptoPath = path.join(this.dataPath, crypto);
@@ -384,9 +316,7 @@ export class BlockchainDataManager {
    */
   getEstimatedSizeRequirements(): { [key: string]: string } {
     return {
-      bitcoin: '~5-10 GB (pruned UTXO set)',
-      ethereum: '~2-5 GB (account states)',
-      litecoin: '~1-2 GB (pruned UTXO set)'
+      bitcoin: '~5-10 GB (pruned UTXO set)'
     };
   }
 }
