@@ -1,0 +1,102 @@
+{
+  "reportMetadata": {
+    "generatedAt": "2025-09-03T12:19:52.009Z",
+    "tool": "Crypto Key Validator",
+    "version": "1.0.0",
+    "scanType": "sample_data",
+    "bitcoinOnly": true
+  },
+  "summary": {
+    "totalArtifacts": 4,
+    "validArtifacts": 4,
+    "addressCount": 2,
+    "privateKeyCount": 1,
+    "seedPhraseCount": 1,
+    "balanceTotal": "N/A (offline mode)"
+  },
+  "artifacts": [
+    {
+      "id": "sample-001",
+      "type": "address",
+      "subtype": "Legacy Address (P2PKH/P2SH)",
+      "raw": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+      "validationStatus": "valid",
+      "metadata": {
+        "cryptocurrency": {
+          "name": "Bitcoin",
+          "symbol": "BTC",
+          "network": "mainnet"
+        },
+        "confidence": 0.95,
+        "addressType": "P2PKH"
+      },
+      "source": {
+        "type": "direct_input",
+        "path": "sample_data"
+      },
+      "createdAt": "2025-09-03T12:19:52.011Z"
+    },
+    {
+      "id": "sample-002",
+      "type": "address",
+      "subtype": "Taproot Address (P2TR)",
+      "raw": "bc1p***truncated***",
+      "validationStatus": "valid",
+      "metadata": {
+        "cryptocurrency": {
+          "name": "Bitcoin",
+          "symbol": "BTC",
+          "network": "mainnet"
+        },
+        "confidence": 0.98,
+        "addressType": "P2TR"
+      },
+      "source": {
+        "type": "direct_input",
+        "path": "sample_data"
+      },
+      "createdAt": "2025-09-03T12:19:52.011Z"
+    },
+    {
+      "id": "sample-003",
+      "type": "private_key",
+      "subtype": "WIF Private Key",
+      "raw": "5***truncated***",
+      "validationStatus": "valid",
+      "metadata": {
+        "cryptocurrency": {
+          "name": "Bitcoin",
+          "symbol": "BTC",
+          "network": "mainnet"
+        },
+        "confidence": 0.99
+      },
+      "source": {
+        "type": "file_system",
+        "path": "/sample/wallet.dat"
+      },
+      "createdAt": "2025-09-03T12:19:52.011Z"
+    },
+    {
+      "id": "sample-004",
+      "type": "seed_phrase",
+      "subtype": "BIP39 Seed Phrase (12 words)",
+      "raw": "abandon abandon ***truncated***",
+      "validationStatus": "valid",
+      "metadata": {
+        "cryptocurrency": {
+          "name": "Bitcoin",
+          "symbol": "BTC",
+          "network": "mainnet"
+        },
+        "confidence": 0.97,
+        "entropy": 128
+      },
+      "source": {
+        "type": "file_system",
+        "path": "/sample/recovery.txt"
+      },
+      "createdAt": "2025-09-03T12:19:52.011Z"
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Key Validator Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; }
+        .summary { background: white; margin: 20px 0; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .artifacts { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .artifact { border: 1px solid #ddd; margin: 10px 0; padding: 10px; border-radius: 4px; }
+        .valid { border-left: 4px solid #28a745; }
+        .bitcoin-only { color: #f39c12; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { text-align: left; padding: 8px; border-bottom: 1px solid #ddd; }
+        th { background-color: #f8f9fa; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔍 Crypto Key Validator Report</h1>
+        <p>Generated: 2025-09-03T12:19:52.009Z</p>
+        <p><span class="bitcoin-only">Bitcoin-Only Analysis</span> | Offline Mode</p>
+    </div>
+    
+    <div class="summary">
+        <h2>📊 Summary</h2>
+        <table>
+            <tr><th>Total Artifacts</th><td>4</td></tr>
+            <tr><th>Valid Artifacts</th><td>4</td></tr>
+            <tr><th>Addresses Found</th><td>2</td></tr>
+            <tr><th>Private Keys Found</th><td>1</td></tr>
+            <tr><th>Seed Phrases Found</th><td>1</td></tr>
+            <tr><th>Balance Total</th><td>N/A (offline mode)</td></tr>
+        </table>
+    </div>
+    
+    <div class="artifacts">
+        <h2>🔐 Artifacts Found</h2>
+        
+            <div class="artifact valid">
+                <h3>Legacy Address (P2PKH/P2SH)</h3>
+                <p><strong>Type:</strong> address</p>
+                <p><strong>Status:</strong> valid</p>
+                <p><strong>Network:</strong> Bitcoin mainnet</p>
+                <p><strong>Source:</strong> direct_input</p>
+                <p><strong>Raw:</strong> 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa</p>
+            </div>
+        
+            <div class="artifact valid">
+                <h3>Taproot Address (P2TR)</h3>
+                <p><strong>Type:</strong> address</p>
+                <p><strong>Status:</strong> valid</p>
+                <p><strong>Network:</strong> Bitcoin mainnet</p>
+                <p><strong>Source:</strong> direct_input</p>
+                <p><strong>Raw:</strong> bc1p***truncated***</p>
+            </div>
+        
+            <div class="artifact valid">
+                <h3>WIF Private Key</h3>
+                <p><strong>Type:</strong> private_key</p>
+                <p><strong>Status:</strong> valid</p>
+                <p><strong>Network:</strong> Bitcoin mainnet</p>
+                <p><strong>Source:</strong> file_system</p>
+                <p><strong>Raw:</strong> 5***truncated***</p>
+            </div>
+        
+            <div class="artifact valid">
+                <h3>BIP39 Seed Phrase (12 words)</h3>
+                <p><strong>Type:</strong> seed_phrase</p>
+                <p><strong>Status:</strong> valid</p>
+                <p><strong>Network:</strong> Bitcoin mainnet</p>
+                <p><strong>Source:</strong> file_system</p>
+                <p><strong>Raw:</strong> abandon abandon ***truncated***</p>
+            </div>
+        
+    </div>
+    
+    <div class="summary">
+        <h2>ℹ️ Information</h2>
+        <p>This is a sample report demonstrating the output format of the Crypto Key Validator.</p>
+        <p><strong>Bitcoin-Only:</strong> This tool exclusively analyzes Bitcoin artifacts and does not support other cryptocurrencies.</p>
+        <p><strong>Offline Mode:</strong> Balance checking is disabled for security and offline operation.</p>
+        <p><strong>Security:</strong> In real reports, private keys and seed phrases would be truncated for security.</p>
+    </div>
+</body>
+</html>
