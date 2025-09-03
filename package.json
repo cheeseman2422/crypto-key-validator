@@ -11,32 +11,125 @@
     "dev": "pnpm run --parallel dev",
     "build": "pnpm run --parallel build",
     "build:appimage": "pnpm build && electron-builder --linux AppImage",
+    "build:deb": "pnpm build && electron-builder --linux deb",
+    "build:rpm": "pnpm build && electron-builder --linux rpm",
+    "build:snap": "pnpm build && electron-builder --linux snap",
+    "build:linux": "pnpm build && electron-builder --linux",
+    "build:win": "pnpm build && electron-builder --win",
+    "build:mac": "pnpm build && electron-builder --mac",
+    "build:all": "pnpm build && electron-builder --linux --win --mac",
+    "dist": "pnpm build:linux",
+    "build:production": "node scripts/build-production.js",
+    "build:production:appimage": "node scripts/build-production.js appimage",
+    "build:production:deb": "node scripts/build-production.js deb",
     "test": "pnpm run --parallel test",
     "lint": "eslint --ext .ts,.js .",
     "format": "prettier --write ."
   },
-  "main": "app-electron/dist/main.js",
+  "main": "app-electron/dist/main/main.js",
+  "homepage": "https://github.com/yourusername/crypto-key-validator",
   "build": {
     "appId": "com.forensics.crypto-key-validator",
     "productName": "Crypto Key Validator",
+    "copyright": "Copyright © 2024 Forensics Team. All rights reserved.",
+    "compression": "maximum",
     "directories": {
-      "output": "dist-packages"
+      "output": "dist-packages",
+      "buildResources": "build-resources"
     },
     "files": [
       "app-electron/dist/**/*",
       "core-engine/dist/**/*",
-      "node_modules/**/*"
+      "node_modules/**/*",
+      "!node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+      "!node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
+      "!node_modules/*.d.ts",
+      "!node_modules/.bin",
+      "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}",
+      "!.editorconfig",
+      "!**/._*",
+      "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
+      "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
+      "!**/{appveyor.yml,.travis.yml,circle.yml}",
+      "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
     ],
+    "extraMetadata": {
+      "main": "app-electron/dist/main/main.js"
+    },
     "linux": {
       "category": "Utility",
+      "description": "Offline cryptocurrency key validator and forensics tool for Bitcoin analysis",
+      "desktop": {
+        "Name": "Crypto Key Validator",
+        "Comment": "Validate Bitcoin keys, addresses, and seed phrases offline",
+        "Categories": "Utility;Security;Development;",
+        "Keywords": "bitcoin;cryptocurrency;forensics;validation;keys;wallet;recovery;"
+      },
       "target": [
         {
           "target": "AppImage",
-          "arch": [
-            "x64"
-          ]
+          "arch": ["x64"]
+        },
+        {
+          "target": "deb",
+          "arch": ["x64"]
+        },
+        {
+          "target": "rpm",
+          "arch": ["x64"]
+        },
+        {
+          "target": "snap",
+          "arch": ["x64"]
         }
-      ]
+      ],
+      "maintainer": "forensics-team@example.com",
+      "vendor": "Forensics Team"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "publisherName": "Forensics Team",
+      "verifyUpdateCodeSignature": false
+    },
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        },
+        {
+          "target": "zip",
+          "arch": ["x64", "arm64"]
+        }
+      ],
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build-resources/entitlements.mac.plist",
+      "entitlementsInherit": "build-resources/entitlements.mac.plist"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Crypto Key Validator"
+    },
+    "snap": {
+      "summary": "Offline Bitcoin key validator and forensics tool",
+      "description": "Professional cryptocurrency validation tool for forensics and wallet recovery. Validates Bitcoin addresses, private keys, and seed phrases completely offline.",
+      "grade": "stable",
+      "confinement": "strict",
+      "plugs": ["home", "removable-media", "desktop", "desktop-legacy"]
     }
   },
   "devDependencies": {
