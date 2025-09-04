@@ -1,6 +1,11 @@
 # Node/Electron build artifacts
 app-electron/release/
 app-electron/squashfs-root/
+
+# Project-specific build outputs
+core-engine/dist/
+app-electron/dist/
+dist-packages/
 node_modules/
 dist/
 # OS files
@@ -117,3 +122,4 @@ Thumbs.db
 *.key
 app-electron/release/
 app-electron/squashfs-root/
+dist-packages/linux-unpacked/
