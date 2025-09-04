@@ -8,8 +8,8 @@ interface CryptoValidatorAPI {
   saveFile: (defaultName: string) => Promise<Electron.SaveDialogReturnValue>;
 
   // Engine operations
-  scanAutopsyCase: (caseDatabasePath: string) => Promise<any[]>;
   scanFileSystem: (rootPath: string, config?: any) => Promise<any[]>;
+  scanDeepForensic: (targetPath: string, options?: any) => Promise<any[]>;
   processDirectInput: (input: string) => Promise<any[]>;
   getArtifacts: () => Promise<any[]>;
   getStatistics: () => Promise<any>;
@@ -40,8 +40,8 @@ const api: CryptoValidatorAPI = {
   saveFile: (defaultName: string) => ipcRenderer.invoke('save-file', defaultName),
 
   // Engine operations
-  scanAutopsyCase: (caseDatabasePath: string) => ipcRenderer.invoke('engine-scan-autopsy', caseDatabasePath),
   scanFileSystem: (rootPath: string, config?: any) => ipcRenderer.invoke('engine-scan-filesystem', rootPath, config),
+  scanDeepForensic: (targetPath: string, options?: any) => ipcRenderer.invoke('engine-scan-deep-forensic', targetPath, options),
   processDirectInput: (input: string) => ipcRenderer.invoke('engine-process-input', input),
   getArtifacts: () => ipcRenderer.invoke('engine-get-artifacts'),
   getStatistics: () => ipcRenderer.invoke('engine-get-statistics'),
@@ -69,7 +69,6 @@ const api: CryptoValidatorAPI = {
   },
 
   onMenuAction: (callback: (action: string) => void) => {
-    ipcRenderer.on('menu-scan-autopsy', () => callback('scan-autopsy'));
     ipcRenderer.on('menu-scan-directory', () => callback('scan-directory'));
     ipcRenderer.on('menu-export', () => callback('export'));
     ipcRenderer.on('menu-clear-data', () => callback('clear-data'));
@@ -83,7 +82,6 @@ const api: CryptoValidatorAPI = {
     ipcRenderer.removeAllListeners('engine-balance-found');
     ipcRenderer.removeAllListeners('engine-scan-completed');
     ipcRenderer.removeAllListeners('engine-scan-error');
-    ipcRenderer.removeAllListeners('menu-scan-autopsy');
     ipcRenderer.removeAllListeners('menu-scan-directory');
     ipcRenderer.removeAllListeners('menu-export');
     ipcRenderer.removeAllListeners('menu-clear-data');

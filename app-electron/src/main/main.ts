@@ -323,6 +323,24 @@ class CryptoKeyValidatorApp {
       return await this.engine.processDirectInput(input);
     });
 
+    ipcMain.handle('engine-scan-deep-forensic', async (_, targetPath: string, options?: any) => {
+      if (!this.engine) throw new Error('Engine not initialized');
+      try {
+        this.sendToRenderer('engine-scan-started', { path: targetPath, type: 'deep_forensic' });
+        const artifacts = await this.engine.scanDeepForensic(targetPath, options);
+        this.sendToRenderer('engine-scan-completed', {
+          totalArtifacts: artifacts.length,
+          validArtifacts: artifacts.filter(a => a.validationStatus === 'valid').length,
+          scanType: 'deep_forensic'
+        });
+        return artifacts;
+      } catch (error) {
+        this.sendToRenderer('engine-scan-error', { error: error instanceof Error ? error.message : 'Unknown error' });
+        console.error('Deep forensic scan failed:', error);
+        throw error;
+      }
+    });
+
     ipcMain.handle('engine-get-artifacts', async () => {
       if (!this.engine) throw new Error('Engine not initialized');
       return this.engine.getArtifacts();

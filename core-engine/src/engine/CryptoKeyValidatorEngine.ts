@@ -21,6 +21,7 @@ import CryptoValidator from '../validation/CryptoValidator';
 import OfflineBalanceChecker, { BlockchainDataManager } from '../balance/OfflineBalanceChecker';
 import InputParser from '../parsing/InputParser';
 import SecurityManager from '../security/SecurityManager';
+import { ArtifactDiscovery } from '../discovery/ArtifactDiscovery';
 
 export class CryptoKeyValidatorEngine extends EventEmitter {
   private validator: CryptoValidator;
@@ -29,6 +30,7 @@ export class CryptoKeyValidatorEngine extends EventEmitter {
   private inputParser: InputParser;
   private securityManager: SecurityManager;
   private blockchainManager: BlockchainDataManager;
+  private artifactDiscovery: ArtifactDiscovery;
   
   private artifacts: Map<string, Artifact> = new Map();
   private validationResults: Map<string, ValidationResult> = new Map();
@@ -68,6 +70,7 @@ export class CryptoKeyValidatorEngine extends EventEmitter {
     this.securityManager = new SecurityManager(config.security);
     this.blockchainManager = new BlockchainDataManager(config.offline.blockchainDataPath);
     this.balanceChecker = new OfflineBalanceChecker(config.offline.blockchainDataPath);
+    this.artifactDiscovery = new ArtifactDiscovery();
   }
 
   /**
@@ -153,6 +156,7 @@ export class CryptoKeyValidatorEngine extends EventEmitter {
       this.performanceMetrics.fileProcessingTime = Date.now() - startTime;
       this.logError(error as Error, 'FileSystem scan');
       this.handleScanError(error);
+      this.isScanning = false; // Reset scan state on error
       throw error;
     } finally {
       this.stopMemoryMonitoring();
@@ -205,6 +209,84 @@ export class CryptoKeyValidatorEngine extends EventEmitter {
       }
       
       throw error;
+    }
+  }
+
+  /**
+   * Deep forensic scan - comprehensive artifact discovery
+   */
+  async scanDeepForensic(targetPath: string, options: {
+    hexCarving?: boolean;
+    databaseScan?: boolean;
+    metadataScan?: boolean;
+    maxFileSize?: number;
+  } = {}): Promise<Artifact[]> {
+    this.validateInitialized();
+    
+    const startTime = Date.now();
+    let allArtifacts: Artifact[] = [];
+    
+    try {
+      this.startScan('deep_forensic');
+      this.scanProgress.phase = ScanPhase.SCANNING;
+      
+      console.log(`🔍 Starting deep forensic scan of: ${targetPath}`);
+      this.startMemoryMonitoring();
+      
+      // Use advanced discovery engine
+      const discoveryOptions = {
+        deepScan: true,
+        hexCarving: options.hexCarving ?? true,
+        databaseScan: options.databaseScan ?? true, 
+        metadataScan: options.metadataScan ?? true,
+        maxFileSize: options.maxFileSize || 50 * 1024 * 1024, // 50MB
+        skipBinaries: false
+      };
+      
+      const discoveryResults = await this.artifactDiscovery.discoverArtifacts(targetPath, discoveryOptions);
+      
+      // Flatten all discovered artifacts
+      for (const result of discoveryResults) {
+        allArtifacts.push(...result.artifacts);
+        
+        // Log interesting findings
+        if (result.metadata.scanType === 'hex_carving' && result.artifacts.length > 0) {
+          console.log(`🔥 Hex carved ${result.artifacts.length} artifacts from ${result.metadata.dataSource}`);
+        }
+        if (result.metadata.scanType === 'sqlite_scan' && result.artifacts.length > 0) {
+          console.log(`💾 Found ${result.artifacts.length} artifacts in database ${result.metadata.dataSource}`);
+        }
+        if (result.metadata.confidence > 0.8) {
+          console.log(`⭐ High confidence (${(result.metadata.confidence * 100).toFixed(0)}%) discovery: ${result.metadata.context}`);
+        }
+      }
+      
+      // Store all discovered artifacts
+      const storedCount = this.storeArtifactsWithErrorHandling(allArtifacts);
+      console.log(`📦 Stored ${storedCount}/${allArtifacts.length} discovered artifacts`);
+      
+      this.scanProgress.artifactsFound = allArtifacts.length;
+      this.emit('scan-progress', { ...this.scanProgress });
+      
+      // Validate discovered artifacts
+      await this.validateArtifactsWithRetry(allArtifacts);
+      
+      this.performanceMetrics.fileProcessingTime = Date.now() - startTime;
+      this.completeScan();
+      
+      const validCount = allArtifacts.filter(a => a.validationStatus === ValidationStatus.VALID).length;
+      console.log(`✅ Deep forensic scan completed! Found ${validCount}/${allArtifacts.length} valid Bitcoin artifacts`);
+      
+      return allArtifacts;
+      
+    } catch (error) {
+      this.performanceMetrics.fileProcessingTime = Date.now() - startTime;
+      this.logError(error as Error, 'Deep forensic scan');
+      this.handleScanError(error);
+      this.isScanning = false;
+      throw error;
+    } finally {
+      this.stopMemoryMonitoring();
     }
   }
 

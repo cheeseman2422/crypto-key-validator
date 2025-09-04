@@ -27,10 +27,14 @@ export default class InputParser {
     const lines = input.split('\n').map(line => line.trim()).filter(line => line.length > 0);
     
     for (const line of lines) {
-      // Check each line for Bitcoin artifacts
-      const artifact = this.detectBitcoinArtifact(line);
-      if (artifact) {
-        artifacts.push(artifact);
+      // First try whole line
+      const wholeLineArtifact = this.detectBitcoinArtifact(line);
+      if (wholeLineArtifact) {
+        artifacts.push(wholeLineArtifact);
+      } else {
+        // If whole line fails, extract valid parts from mixed content
+        const extractedArtifacts = this.extractArtifactsFromMixedContent(line);
+        artifacts.push(...extractedArtifacts);
       }
     }
     
@@ -77,6 +81,25 @@ export default class InputParser {
     
     return null;
   }
+  
+  /**
+   * Extract Bitcoin artifacts from mixed content (e.g., "address garbage text")
+   */
+  private extractArtifactsFromMixedContent(text: string): Artifact[] {
+    const artifacts: Artifact[] = [];
+    
+    // Split by whitespace and punctuation to get potential artifacts
+    const tokens = text.split(/[\s,;:()\[\]{}"'`]+/).filter(token => token.length > 0);
+    
+    for (const token of tokens) {
+      const artifact = this.detectBitcoinArtifact(token);
+      if (artifact) {
+        artifacts.push(artifact);
+      }
+    }
+    
+    return artifacts;
+  }
 
   /**
    * Parse filesystem for cryptocurrency artifacts
@@ -89,14 +112,17 @@ export default class InputParser {
     }
     
     const stats = fs.statSync(rootPath);
-    if (!stats.isDirectory()) {
-      throw new Error(`Path is not a directory: ${rootPath}`);
-    }
     
     console.log(`🔍 Starting filesystem scan of: ${rootPath}`);
     
     try {
-      await this.scanDirectory(rootPath, config, artifacts, 0);
+      if (stats.isDirectory()) {
+        await this.scanDirectory(rootPath, config, artifacts, 0);
+      } else if (stats.isFile()) {
+        await this.scanFile(rootPath, config, artifacts);
+      } else {
+        throw new Error(`Path is neither file nor directory: ${rootPath}`);
+      }
     } catch (error) {
       console.error(`Scan failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       throw error;

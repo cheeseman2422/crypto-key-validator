@@ -43,25 +43,6 @@ export function Sidebar({ onToast }: SidebarProps) {
     }
   };
 
-  const handleScanAutopsy = async () => {
-    try {
-      const result = await window.cryptoValidator.selectFile();
-      if (result.canceled || !result.filePaths.length) {
-        return;
-      }
-
-      const filePath = result.filePaths[0];
-      onToast('info', 'Starting Autopsy case scan...');
-      
-      await window.cryptoValidator.scanAutopsyCase(filePath);
-      await window.cryptoValidator.addRecentFile(filePath);
-      await loadRecentFiles();
-      
-    } catch (error: any) {
-      console.error('Autopsy scan failed:', error);
-      onToast('error', `Scan failed: ${error.message}`);
-    }
-  };
 
   const handleScanDirectory = async () => {
     try {
@@ -84,6 +65,31 @@ export function Sidebar({ onToast }: SidebarProps) {
     } catch (error: any) {
       console.error('Directory scan failed:', error);
       onToast('error', `Scan failed: ${error.message}`);
+    }
+  };
+
+  const handleDeepForensicScan = async () => {
+    try {
+      const result = await window.cryptoValidator.selectDirectory();
+      if (result.canceled || !result.filePaths.length) {
+        return;
+      }
+
+      const targetPath = result.filePaths[0];
+      onToast('success', '🔥 Starting DEEP FORENSIC SCAN - This will find everything!');
+      
+      await window.cryptoValidator.scanDeepForensic(targetPath, {
+        hexCarving: true,
+        databaseScan: true, 
+        metadataScan: true,
+        maxFileSize: 50 * 1024 * 1024
+      });
+      
+      onToast('success', '✅ Deep forensic scan completed!');
+      
+    } catch (error: any) {
+      console.error('Deep forensic scan failed:', error);
+      onToast('error', `Deep scan failed: ${error.message}`);
     }
   };
 
@@ -116,11 +122,11 @@ export function Sidebar({ onToast }: SidebarProps) {
 
   const openRecentFile = async (filePath: string) => {
     try {
-      onToast('info', 'Opening recent file...');
-      await window.cryptoValidator.scanAutopsyCase(filePath);
+      onToast('info', 'Scanning recent file...');
+      await window.cryptoValidator.scanFileSystem(filePath);
     } catch (error: any) {
-      console.error('Failed to open recent file:', error);
-      onToast('error', `Failed to open file: ${error.message}`);
+      console.error('Failed to scan recent file:', error);
+      onToast('error', `Scan failed: ${error.message}`);
     }
   };
 
@@ -140,13 +146,6 @@ export function Sidebar({ onToast }: SidebarProps) {
       <div className="space-y-3 mb-8">
         <h3 className="text-sm font-semibold text-gray-300 mb-4">ACTIONS</h3>
         
-        <button
-          onClick={handleScanAutopsy}
-          className="w-full btn-primary flex items-center gap-3 text-left"
-        >
-          <DocumentIcon className="w-5 h-5" />
-          Scan Autopsy Case
-        </button>
         
         <button
           onClick={handleScanDirectory}
@@ -154,6 +153,17 @@ export function Sidebar({ onToast }: SidebarProps) {
         >
           <FolderIcon className="w-5 h-5" />
           Scan Directory
+        </button>
+        
+        <button
+          onClick={handleDeepForensicScan}
+          className="w-full bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-bold py-3 px-4 rounded-lg flex items-center gap-3 text-left transition-all transform hover:scale-105 shadow-lg"
+        >
+          <span className="text-xl">🔥</span>
+          <div>
+            <div className="font-bold">DEEP FORENSIC SCAN</div>
+            <div className="text-xs opacity-90">Hex carving • Database analysis • Metadata extraction</div>
+          </div>
         </button>
         
         <div className="border-t border-crypto-light my-4"></div>

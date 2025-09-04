@@ -1,0 +1,13 @@
+{
+  "database": {
+    "connection": "localhost:5432",
+    "backup_key": "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4",
+    "settings": {
+      "recovery_phrase": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+    }
+  },
+  "logs": [
+    "error: connection failed",
+    "info: wallet backup created at 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
+  ]
+}

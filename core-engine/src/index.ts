@@ -10,6 +10,7 @@ export * from './types';
 export { default as CryptoValidator } from './validation/CryptoValidator';
 export { default as OfflineBalanceChecker, BlockchainDataManager } from './balance/OfflineBalanceChecker';
 export { default as InputParser } from './parsing/InputParser';
+export { ArtifactDiscovery } from './discovery/ArtifactDiscovery';
 
 // Security Manager
 export { default as SecurityManager } from './security/SecurityManager';
