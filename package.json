@@ -137,7 +137,7 @@
     "@types/node": "^20.19.11",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
-    "electron": "^37.3.1",
+    "electron": "^38.0.0",
     "electron-builder": "^24.13.3",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^9.1.2",
