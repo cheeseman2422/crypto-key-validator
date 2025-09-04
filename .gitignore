@@ -123,3 +123,4 @@ Thumbs.db
 app-electron/release/
 app-electron/squashfs-root/
 dist-packages/linux-unpacked/
+dist-packages/
