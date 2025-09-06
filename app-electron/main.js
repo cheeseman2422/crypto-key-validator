@@ -58,20 +58,28 @@ class CryptoKeyFinderApp {
     });
 
     // Load the renderer
-    this.mainWindow.loadFile(path.join(__dirname, 'src/renderer/index.html'));
+  this.mainWindow.loadFile(path.resolve(__dirname, 'dist/renderer/index.html'));
+    // Log renderer errors to main process console
+    this.mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+      console.error(`[Renderer Error] ${message} (at ${sourceId}:${line})`);
+    });
+    this.mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+      console.error(`[Renderer Load Failed] ${errorDescription} (${errorCode}) at ${validatedURL}`);
+      this.mainWindow.webContents.executeJavaScript(`
+        document.body.innerHTML = '<div style="color:red;font-size:2em;padding:2em;text-align:center;">Renderer failed to load: ${errorDescription} (${errorCode})</div>';
+      `);
+    });
 
     // Window events
     this.mainWindow.once('ready-to-show', () => {
       this.mainWindow?.show();
+      this.mainWindow.webContents.openDevTools();
       console.log('🔐 CryptoKeyFinder Application Started');
     });
 
     this.mainWindow.on('closed', () => {
       this.mainWindow = null;
     });
-
-    // Open DevTools in development
-    // this.mainWindow.webContents.openDevTools();
   }
 
   setupMenu() {

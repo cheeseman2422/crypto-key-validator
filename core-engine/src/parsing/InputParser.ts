@@ -1,3 +1,4 @@
+
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
@@ -5,313 +6,323 @@ import * as crypto from 'crypto';
 import {
   Artifact,
   ArtifactType,
+  ArtifactSource,
   SourceType,
   CryptocurrencyType,
   ValidationStatus,
   ScanConfiguration
 } from '../types';
 
-export default class InputParser {
-  private readonly bitcoinType: CryptocurrencyType = {
-    name: 'Bitcoin',
-    symbol: 'BTC',
-    network: 'mainnet',
-    coinType: 0
-  };
 
-  /**
-   * Parse direct input (pasted text) - Bitcoin artifact detection
-   */
-  parseDirectInput(input: string): Artifact[] {
-    const artifacts: Artifact[] = [];
-    const lines = input.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-    
-    for (const line of lines) {
-      // First try whole line
-      const wholeLineArtifact = this.detectBitcoinArtifact(line);
-      if (wholeLineArtifact) {
-        artifacts.push(wholeLineArtifact);
-      } else {
-        // If whole line fails, extract valid parts from mixed content
-        const extractedArtifacts = this.extractArtifactsFromMixedContent(line);
-        artifacts.push(...extractedArtifacts);
-      }
+import { bitcoinPatterns, bitcoinWalletTypes } from '../utils/bitcoinPatterns';
+
+
+class InputParser {
+  private bitcoinPatterns = bitcoinPatterns;
+  private db: any | null = null;
+
+  constructor(dbPath?: string) {
+    if (dbPath) {
+      // Dynamically require to avoid runtime dependency unless enabled
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const BetterSqlite3 = require('better-sqlite3');
+      this.db = new BetterSqlite3(dbPath);
+      this.initDb();
     }
-    
-    return artifacts;
-  }
-  
-  /**
-   * Detect Bitcoin artifacts in a single line of text
-   */
-  private detectBitcoinArtifact(text: string): Artifact | null {
-    // Bitcoin Legacy addresses (P2PKH/P2SH) - starts with 1 or 3
-    if (/^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/.test(text)) {
-      return this.createArtifact(ArtifactType.ADDRESS, text, 'Legacy Address (P2PKH/P2SH)');
-    }
-    
-    // Bitcoin Taproot addresses (P2TR) - starts with bc1p (check first)
-    if (/^bc1p[a-z0-9]{58}$/.test(text)) {
-      return this.createArtifact(ArtifactType.ADDRESS, text, 'Taproot Address (P2TR)');
-    }
-    
-    // Bitcoin Bech32 addresses (P2WPKH/P2WSH) - starts with bc1q
-    if (/^bc1q[a-z0-9]{38}$/.test(text) || /^bc1[a-z0-9]{59}$/.test(text)) {
-      return this.createArtifact(ArtifactType.ADDRESS, text, 'Bech32 Address (P2WPKH/P2WSH)');
-    }
-    
-    // Bitcoin WIF private keys - starts with 5, K, or L
-    if (/^[5KL][1-9A-HJ-NP-Za-km-z]{50,51}$/.test(text)) {
-      return this.createArtifact(ArtifactType.PRIVATE_KEY, text, 'WIF Private Key');
-    }
-    
-    // Bitcoin raw hex private keys - 64 hex characters
-    if (/^[a-fA-F0-9]{64}$/.test(text)) {
-      return this.createArtifact(ArtifactType.PRIVATE_KEY, text, 'Raw Hex Private Key');
-    }
-    
-    // Bitcoin seed phrases - 12, 15, 18, 21, or 24 words
-    const words = text.toLowerCase().split(/\s+/).filter(w => w.length > 0);
-    if ([12, 15, 18, 21, 24].includes(words.length)) {
-      // Basic check - all words should be lowercase letters only
-      if (words.every(word => /^[a-z]+$/.test(word))) {
-        return this.createArtifact(ArtifactType.SEED_PHRASE, text, `BIP39 Seed Phrase (${words.length} words)`);
-      }
-    }
-    
-    return null;
-  }
-  
-  /**
-   * Extract Bitcoin artifacts from mixed content (e.g., "address garbage text")
-   */
-  private extractArtifactsFromMixedContent(text: string): Artifact[] {
-    const artifacts: Artifact[] = [];
-    
-    // Split by whitespace and punctuation to get potential artifacts
-    const tokens = text.split(/[\s,;:()\[\]{}"'`]+/).filter(token => token.length > 0);
-    
-    for (const token of tokens) {
-      const artifact = this.detectBitcoinArtifact(token);
-      if (artifact) {
-        artifacts.push(artifact);
-      }
-    }
-    
-    return artifacts;
   }
 
-  /**
-   * Parse filesystem for cryptocurrency artifacts
-   */
-  async parseFileSystem(rootPath: string, config: ScanConfiguration): Promise<Artifact[]> {
-    const artifacts: Artifact[] = [];
-    
-    if (!fs.existsSync(rootPath)) {
-      throw new Error(`Path does not exist: ${rootPath}`);
-    }
-    
-    const stats = fs.statSync(rootPath);
-    
-    console.log(`🔍 Starting filesystem scan of: ${rootPath}`);
-    
-    try {
-      if (stats.isDirectory()) {
-        await this.scanDirectory(rootPath, config, artifacts, 0);
-      } else if (stats.isFile()) {
-        await this.scanFile(rootPath, config, artifacts);
-      } else {
-        throw new Error(`Path is neither file nor directory: ${rootPath}`);
-      }
-    } catch (error) {
-      console.error(`Scan failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      throw error;
-    }
-    
-    console.log(`✅ Filesystem scan completed. Found ${artifacts.length} artifacts.`);
-    return artifacts;
+  private initDb() {
+    if (!this.db) return;
+    this.db.exec(`CREATE TABLE IF NOT EXISTS artifacts (
+      id TEXT PRIMARY KEY,
+      type TEXT,
+      subtype TEXT,
+      raw TEXT,
+      source_type TEXT,
+      source_path TEXT,
+      metadata TEXT,
+      validation_status TEXT,
+      created_at TEXT,
+      updated_at TEXT
+    )`);
   }
-  
-  /**
-   * Recursively scan a directory for Bitcoin artifacts
-   */
-  private async scanDirectory(
-    dirPath: string, 
-    config: ScanConfiguration, 
-    artifacts: Artifact[], 
-    depth: number
-  ): Promise<void> {
-    const maxDepth = 10; // Prevent infinite recursion
-    if (depth > maxDepth) {
-      return;
-    }
-    
-    try {
-      const entries = fs.readdirSync(dirPath, { withFileTypes: true });
-      
-      for (const entry of entries) {
-        const fullPath = path.join(dirPath, entry.name);
-        
-        // Skip excluded paths
-        if (config.excludePaths.some(excludePath => fullPath.includes(excludePath))) {
-          continue;
-        }
-        
-        if (entry.isDirectory()) {
-          // Recursively scan subdirectories
-          await this.scanDirectory(fullPath, config, artifacts, depth + 1);
-        } else if (entry.isFile()) {
-          // Process files
-          await this.scanFile(fullPath, config, artifacts);
-        }
-      }
-    } catch (error) {
-      // Continue scanning even if a directory can't be accessed
-      console.warn(`Cannot scan directory ${dirPath}:`, error instanceof Error ? error.message : 'Unknown error');
-    }
-  }
-  
-  /**
-   * Scan an individual file for Bitcoin artifacts
-   */
-  private async scanFile(
-    filePath: string, 
-    config: ScanConfiguration, 
-    artifacts: Artifact[]
-  ): Promise<void> {
-    try {
-      const stats = fs.statSync(filePath);
-      
-      // Skip files that are too large
-      if (stats.size > config.maxFileSize) {
-        return;
-      }
-      
-      // Check if file type should be scanned
-      const ext = path.extname(filePath).toLowerCase();
-      if (config.fileTypes.length > 0 && !config.fileTypes.includes(ext)) {
-        return;
-      }
-      
-      // Read file content
-      const content = await this.readFileContent(filePath, stats.size);
-      if (!content) {
-        return;
-      }
-      
-      // Search for Bitcoin artifacts in the content
-      const foundArtifacts = this.findArtifactsInText(content, filePath);
-      artifacts.push(...foundArtifacts);
-      
-      if (foundArtifacts.length > 0) {
-        console.log(`📄 Found ${foundArtifacts.length} artifact(s) in: ${filePath}`);
-      }
-      
-    } catch (error) {
-      // Continue scanning even if a file can't be processed
-      console.warn(`Cannot scan file ${filePath}:`, error instanceof Error ? error.message : 'Unknown error');
-    }
-  }
-  
-  /**
-   * Safely read file content with encoding detection
-   */
-  private async readFileContent(filePath: string, fileSize: number): Promise<string | null> {
-    try {
-      // Read file as buffer first
-      const buffer = fs.readFileSync(filePath);
-      
-      // Limit reading to prevent memory issues
-      const maxReadSize = Math.min(buffer.length, 1024 * 1024); // 1MB max
-      const limitedBuffer = buffer.subarray(0, maxReadSize);
-      
-      // Try to decode as UTF-8, fall back to binary search
-      try {
-        return limitedBuffer.toString('utf8');
-      } catch {
-        // For binary files, convert to hex and search for patterns
-        return limitedBuffer.toString('hex');
-      }
-    } catch (error) {
-      return null;
-    }
-  }
-  
-  /**
-   * Find Bitcoin artifacts in text content
-   */
-  private findArtifactsInText(content: string, sourcePath: string): Artifact[] {
-    const artifacts: Artifact[] = [];
-    const lines = content.split(/[\r\n]+/);
-    
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (line.length === 0) continue;
-      
-      // Check for Bitcoin artifacts in each line
-      const words = line.split(/\s+/);
-      
-      for (const word of words) {
-        const cleanWord = word.replace(/[^a-zA-Z0-9]/g, ''); // Remove punctuation
-        if (cleanWord.length < 10) continue; // Skip very short strings
-        
-        const artifact = this.detectBitcoinArtifact(cleanWord);
-        if (artifact) {
-          // Update the artifact to show file source
-          artifact.source = {
-            type: SourceType.FILE_SYSTEM,
-            path: sourcePath,
-            size: fs.statSync(sourcePath).size
-          };
-          artifact.metadata.tags.push('file_scan', `line_${i + 1}`);
-          artifacts.push(artifact);
-        }
-      }
-      
-      // Also check the entire line for multi-word seed phrases
-      if (line.split(' ').length >= 12) {
-        const artifact = this.detectBitcoinArtifact(line);
-        if (artifact && artifact.type === ArtifactType.SEED_PHRASE) {
-          artifact.source = {
-            type: SourceType.FILE_SYSTEM,
-            path: sourcePath,
-            size: fs.statSync(sourcePath).size
-          };
-          artifact.metadata.tags.push('file_scan', `line_${i + 1}`);
-          artifacts.push(artifact);
-        }
-      }
-    }
-    
-    // Remove duplicates based on raw content
-    const uniqueArtifacts = artifacts.filter((artifact, index, arr) => 
-      arr.findIndex(a => a.raw === artifact.raw) === index
+
+  private saveArtifactToDb(artifact: Artifact) {
+    if (!this.db) return;
+    const stmt = this.db.prepare(`INSERT OR REPLACE INTO artifacts
+      (id, type, subtype, raw, source_type, source_path, metadata, validation_status, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+    stmt.run(
+      artifact.id,
+      artifact.type,
+      artifact.subtype,
+      artifact.raw,
+      artifact.source.type,
+      artifact.source.path,
+      JSON.stringify(artifact.metadata),
+      artifact.validationStatus,
+      artifact.createdAt.toISOString(),
+      artifact.updatedAt.toISOString()
     );
-    
-    return uniqueArtifacts;
+  }
+
+
+
+  // Parse individual file for cryptocurrency artifacts
+  async parseFile(filePath: string, config: ScanConfiguration): Promise<Artifact[]> {
+    const artifacts: Artifact[] = [];
+    try {
+      const walletArtifacts = await this.parseWalletFile(filePath);
+      artifacts.push(...walletArtifacts);
+      // Save to DB if enabled
+      for (const artifact of artifacts) {
+        this.saveArtifactToDb(artifact);
+      }
+    } catch (error) {
+      console.warn(`Error parsing file ${filePath}:`, error);
+    }
+    return artifacts;
+  }
+
+  // Recursively scan a filesystem path and parse files
+  async parseFileSystem(rootPath: string, config: ScanConfiguration): Promise<Artifact[]> {
+    const results: Artifact[] = [];
+
+    const shouldExclude = (p: string) => {
+      if (!config.excludePaths) return false;
+      return config.excludePaths.some(ex => p.startsWith(ex));
+    };
+
+    const shouldInclude = (p: string) => {
+      if (!config.includePaths || config.includePaths.length === 0) return true;
+      return config.includePaths.some(inc => p.startsWith(inc));
+    };
+
+    const stack: string[] = [rootPath];
+    while (stack.length > 0) {
+      const current = stack.pop() as string;
+      if (shouldExclude(current) || !shouldInclude(current)) continue;
+      try {
+        const stat = await fs.promises.stat(current);
+        if (stat.isDirectory()) {
+          const entries = await fs.promises.readdir(current, { withFileTypes: true });
+          for (const entry of entries) {
+            const full = path.join(current, entry.name);
+            if (entry.isDirectory()) {
+              stack.push(full);
+            } else if (entry.isFile()) {
+              // Filter by file size
+              if (config.maxFileSize && stat.size > config.maxFileSize) continue;
+              // Filter by extension if fileTypes provided
+              if (config.fileTypes && config.fileTypes.length > 0) {
+                const ext = path.extname(full).toLowerCase();
+                if (!config.fileTypes.includes(ext)) continue;
+              }
+              const artifacts = await this.parseFile(full, config);
+              if (artifacts.length) results.push(...artifacts);
+            }
+          }
+        } else if (stat.isFile()) {
+          if (config.maxFileSize && stat.size > config.maxFileSize) continue;
+          const artifacts = await this.parseFile(current, config);
+          if (artifacts.length) results.push(...artifacts);
+        }
+      } catch (e) {
+        console.warn(`Skipping path due to error: ${current}`, e);
+      }
+    }
+
+    return results;
+  }
+
+  // Parse known wallet file types
+  private async parseWalletFile(filePath: string): Promise<Artifact[]> {
+    const artifacts: Artifact[] = [];
+    const fileName = path.basename(filePath).toLowerCase();
+    const fileExt = path.extname(filePath).toLowerCase();
+  const walletTypes = bitcoinWalletTypes;
+    for (const walletType of walletTypes) {
+      let isMatch = false;
+      if (walletType.files && walletType.files.includes(fileName)) {
+        isMatch = true;
+      } else if (walletType.extensions && walletType.extensions.includes(fileExt)) {
+        isMatch = true;
+      }
+      if (isMatch) {
+        const stats = await fs.promises.stat(filePath);
+        artifacts.push({
+          id: crypto.randomUUID(),
+          type: ArtifactType.WALLET_FILE,
+          subtype: walletType.name,
+          raw: filePath,
+          source: {
+            type: SourceType.FILE_SYSTEM,
+            path: filePath,
+            size: stats.size,
+            hash: await this.calculateFileHash(filePath)
+          },
+          metadata: {
+            cryptocurrency: { name: 'Bitcoin', symbol: 'BTC', network: 'mainnet', coinType: 0 },
+            confidence: 0.9,
+            walletType: walletType.name,
+            tags: ['wallet', walletType.name]
+          },
+          validationStatus: ValidationStatus.PENDING,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+      }
+    }
+    return artifacts;
+  }
+
+
+
+  /**
+   * Parse direct text input
+   */
+  parseDirectInput(input: string, sourceType: SourceType = SourceType.DIRECT_INPUT): Artifact[] {
+    const artifacts: Artifact[] = [];
+    for (const [cryptoType, pattern] of Object.entries(this.bitcoinPatterns)) {
+      if (cryptoType === 'walletSignatures') continue;
+      const matches = input.match(pattern as RegExp);
+      if (matches) {
+        for (const match of matches) {
+          const artifactType = this.getArtifactTypeFromPattern(cryptoType);
+          const cryptocurrency: CryptocurrencyType = { name: 'Bitcoin', symbol: 'BTC', network: 'mainnet', coinType: 0 };
+          const artifact: Artifact = {
+            id: crypto.randomUUID(),
+            type: artifactType,
+            subtype: cryptoType,
+            raw: match,
+            source: {
+              type: sourceType,
+              path: 'direct_input'
+            },
+            metadata: {
+              cryptocurrency,
+              confidence: 0.8,
+              tags: [cryptoType, 'direct_input']
+            },
+            validationStatus: ValidationStatus.PENDING,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          };
+          artifacts.push(artifact);
+          this.saveArtifactToDb(artifact);
+        }
+      }
+    }
+    return artifacts;
   }
 
   /**
-   * Create a Bitcoin artifact
+   * Enhanced helper methods for Bitcoin pattern recognition
    */
-  private createArtifact(type: ArtifactType, raw: string, subtype: string): Artifact {
-    return {
-      id: crypto.randomUUID(),
-      type,
-      subtype,
-      raw,
-      source: {
-        type: SourceType.DIRECT_INPUT,
-        path: 'direct_input'
-      },
-      metadata: {
-        cryptocurrency: this.bitcoinType,
-        confidence: 0.8,
-        tags: ['bitcoin', 'found']
-      },
-      validationStatus: ValidationStatus.PENDING,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
+  private getArtifactTypeFromPattern(patternType: string): ArtifactType {
+    // Bitcoin address patterns
+    if (patternType.includes('address')) return ArtifactType.ADDRESS;
+    
+    // Bitcoin private key patterns
+    if (patternType.includes('private_key') || patternType.includes('extended_key') || patternType.includes('bip38') || patternType.includes('mini_private_key')) {
+      return ArtifactType.PRIVATE_KEY;
+    }
+    
+    // Bitcoin seed phrase patterns
+    if (patternType.includes('seed_phrase')) return ArtifactType.SEED_PHRASE;
+    
+    return ArtifactType.ADDRESS; // default
   }
+
+  private getCryptocurrencyFromPattern(patternType: string): CryptocurrencyType {
+    // All patterns are Bitcoin-focused now
+  return 'bitcoin' as unknown as CryptocurrencyType;
+  }
+
+  /**
+   * Get detailed Bitcoin pattern information
+   */
+  private getBitcoinPatternDetails(patternType: string): { addressType: string, network: string, keyType?: string } {
+    // Address types
+    if (patternType.includes('address_legacy')) return { addressType: 'P2PKH', network: 'mainnet' };
+    if (patternType.includes('address_p2sh')) return { addressType: 'P2SH', network: 'mainnet' };
+    if (patternType.includes('address_bech32')) return { addressType: 'P2WPKH/P2WSH', network: 'mainnet' };
+    if (patternType.includes('address_taproot')) return { addressType: 'P2TR', network: 'mainnet' };
+    if (patternType.includes('testnet_address')) return { addressType: 'Testnet', network: 'testnet' };
+    
+    // Private key types
+    if (patternType.includes('private_key_wif')) return { addressType: 'WIF', network: 'mainnet', keyType: 'private' };
+    if (patternType.includes('testnet_private_key')) return { addressType: 'WIF', network: 'testnet', keyType: 'private' };
+    if (patternType.includes('private_key_hex')) return { addressType: 'Raw Hex', network: 'mainnet', keyType: 'private' };
+    if (patternType.includes('mini_private_key')) return { addressType: 'Mini Key', network: 'mainnet', keyType: 'private' };
+    if (patternType.includes('bip38_encrypted_key')) return { addressType: 'BIP38', network: 'mainnet', keyType: 'encrypted' };
+    
+    // Extended keys
+    if (patternType.includes('extended_key_xpub')) return { addressType: 'BIP32 xpub', network: 'mainnet', keyType: 'public' };
+    if (patternType.includes('extended_key_xprv')) return { addressType: 'BIP32 xprv', network: 'mainnet', keyType: 'private' };
+    if (patternType.includes('extended_key_ypub')) return { addressType: 'BIP49 ypub', network: 'mainnet', keyType: 'public' };
+    if (patternType.includes('extended_key_yprv')) return { addressType: 'BIP49 yprv', network: 'mainnet', keyType: 'private' };
+    if (patternType.includes('extended_key_zpub')) return { addressType: 'BIP84 zpub', network: 'mainnet', keyType: 'public' };
+    if (patternType.includes('extended_key_zprv')) return { addressType: 'BIP84 zprv', network: 'mainnet', keyType: 'private' };
+    
+    // Seed phrases
+    if (patternType.includes('seed_phrase')) {
+      const wordCount = patternType.includes('_12') ? '12' : 
+                       patternType.includes('_15') ? '15' : 
+                       patternType.includes('_18') ? '18' : 
+                       patternType.includes('_21') ? '21' : 
+                       patternType.includes('_24') ? '24' : 'unknown';
+      return { addressType: `BIP39 ${wordCount} words`, network: 'mainnet', keyType: 'seed' };
+    }
+    
+    return { addressType: 'Unknown', network: 'mainnet' };
+  }
+
+  private async calculateFileHash(filePath: string): Promise<string> {
+    try {
+      const buffer = await fs.promises.readFile(filePath);
+      return crypto.createHash('sha256').update(buffer).digest('hex');
+    } catch {
+      return '';
+    }
+  }
+
+  private async checkIfEncrypted(filePath: string): Promise<boolean> {
+    try {
+      const buffer = await fs.promises.readFile(filePath, { encoding: null });
+      
+      // Simple heuristics for encrypted files
+      if (buffer.length === 0) return false;
+      
+      // Check for high entropy (encrypted files tend to have high entropy)
+      const entropy = this.calculateEntropy(buffer);
+      return entropy > 7.5; // Threshold for detecting encrypted content
+    } catch {
+      return false;
+    }
+  }
+
+  private calculateEntropy(buffer: Buffer): number {
+    const frequencies = new Array(256).fill(0);
+    
+    for (let i = 0; i < buffer.length; i++) {
+      frequencies[buffer[i]]++;
+    }
+    
+    let entropy = 0;
+    const length = buffer.length;
+    
+    for (let i = 0; i < 256; i++) {
+      if (frequencies[i] > 0) {
+        const p = frequencies[i] / length;
+        entropy -= p * Math.log2(p);
+      }
+    }
+    
+    return entropy;
+  }
+
 }
+
+
+export default InputParser;

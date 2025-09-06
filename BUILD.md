@@ -6,18 +6,17 @@ This guide covers how to create production-ready distributions of the Crypto Key
 
 The application uses a sophisticated build system that includes:
 - **Automated validation** of prerequisites and dependencies
-- **Multi-platform support** (Linux, Windows, macOS)
-- **Multiple package formats** (AppImage, DEB, RPM, Snap, NSIS, DMG)
-- **Post-build testing** to ensure functionality
-- **Comprehensive reporting** with build metrics
+-- **Multi-platform support** (Linux, Windows, macOS)
+-- **Multiple package formats** (AppImage, DEB, RPM, Snap, NSIS, DMG)
+-- **Post-build testing** to ensure functionality
+-- **Comprehensive reporting** with build metrics
 
 ## Quick Start
 
 ### Basic Build Commands
 
 ```bash
-# Build for Linux (default - creates AppImage, DEB, RPM, Snap)
-pnpm run dist
+pnpm run dist # Bitcoin-only validator
 
 # Build specific formats
 pnpm run build:appimage  # Linux AppImage

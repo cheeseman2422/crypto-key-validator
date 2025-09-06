@@ -1,7 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 // Expose secure API to renderer process
-contextBridge.exposeInMainWorld('cryptoAPI', {
+contextBridge.exposeInMainWorld('cryptoValidator', {
     // Validate single crypto input
     validateCrypto: (input) => ipcRenderer.invoke('validate-crypto', input),
     

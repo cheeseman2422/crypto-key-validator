@@ -6,13 +6,24 @@ const path = require('path');
 console.log('📊 Crypto Key Validator - Sample Report Generator\n');
 
 // Sample data structure matching our artifacts
+
+// --- SecurityManager: minimal implementation for truncation ---
+class SecurityManager {
+  static truncateForDisplay(data, showLength = 8) {
+    if (!data || typeof data !== 'string') return '';
+    if (data.length <= showLength * 2) {
+      return '*'.repeat(data.length);
+    }
+    return data.substring(0, showLength) + '...' + data.substring(data.length - showLength);
+  }
+}
+
 const sampleData = {
   reportMetadata: {
     generatedAt: new Date().toISOString(),
-    tool: 'Crypto Key Validator',
     version: '1.0.0',
-    scanType: 'sample_data',
-    bitcoinOnly: true
+    bitcoinOnly: true,
+    offlineMode: true
   },
   summary: {
     totalArtifacts: 4,
@@ -26,12 +37,12 @@ const sampleData = {
     {
       id: 'sample-001',
       type: 'address',
-      subtype: 'Legacy Address (P2PKH/P2SH)',
+      subtype: 'Legacy Address (P2PKH)',
       raw: '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa',
       validationStatus: 'valid',
       metadata: {
         cryptocurrency: { name: 'Bitcoin', symbol: 'BTC', network: 'mainnet' },
-        confidence: 0.95,
+        confidence: 0.99,
         addressType: 'P2PKH'
       },
       source: { type: 'direct_input', path: 'sample_data' },
@@ -41,7 +52,7 @@ const sampleData = {
       id: 'sample-002', 
       type: 'address',
       subtype: 'Taproot Address (P2TR)',
-      raw: 'bc1p***truncated***',
+      raw: 'bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297',
       validationStatus: 'valid',
       metadata: {
         cryptocurrency: { name: 'Bitcoin', symbol: 'BTC', network: 'mainnet' },
@@ -55,7 +66,7 @@ const sampleData = {
       id: 'sample-003',
       type: 'private_key', 
       subtype: 'WIF Private Key',
-      raw: '5***truncated***', // Truncated for security
+      raw: '5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ',
       validationStatus: 'valid',
       metadata: {
         cryptocurrency: { name: 'Bitcoin', symbol: 'BTC', network: 'mainnet' },
@@ -68,7 +79,7 @@ const sampleData = {
       id: 'sample-004',
       type: 'seed_phrase',
       subtype: 'BIP39 Seed Phrase (12 words)',
-      raw: 'abandon abandon ***truncated***', // Truncated for security
+      raw: 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
       validationStatus: 'valid', 
       metadata: {
         cryptocurrency: { name: 'Bitcoin', symbol: 'BTC', network: 'mainnet' },
@@ -81,20 +92,34 @@ const sampleData = {
   ]
 };
 
+
+function getSanitizedArtifacts(artifacts) {
+  return artifacts.map(a => {
+    let raw = a.raw;
+    if (a.type === 'private_key' || a.type === 'seed_phrase') {
+      raw = SecurityManager.truncateForDisplay(raw, 8);
+    }
+    return { ...a, raw };
+  });
+}
+
 function generateJSONReport() {
   const filename = 'sample-report.json';
-  fs.writeFileSync(filename, JSON.stringify(sampleData, null, 2));
+  const sanitized = { ...sampleData, artifacts: getSanitizedArtifacts(sampleData.artifacts) };
+  fs.writeFileSync(filename, JSON.stringify(sanitized, null, 2));
   console.log(`✅ Generated JSON report: ${filename}`);
 }
 
+
 function generateCSVReport() {
   const filename = 'sample-report.csv';
-  const headers = 'ID,Type,Subtype,Status,Cryptocurrency,Network,Source,Created';
-  const rows = sampleData.artifacts.map(artifact => 
+  const headers = 'ID,Type,Subtype,Raw,Status,Cryptocurrency,Network,Source,Created';
+  const rows = getSanitizedArtifacts(sampleData.artifacts).map(artifact => 
     [
       artifact.id,
       artifact.type,
       artifact.subtype,
+      artifact.raw,
       artifact.validationStatus,
       artifact.metadata.cryptocurrency.name,
       artifact.metadata.cryptocurrency.network,
@@ -103,75 +128,76 @@ function generateCSVReport() {
     ].join(',')
   );
   
-  const csvContent = [headers, ...rows].join('\\n');
+  const csvContent = [headers, ...rows].join('\n');
   fs.writeFileSync(filename, csvContent);
   console.log(`✅ Generated CSV report: ${filename}`);
 }
 
+
 function generateHTMLReport() {
   const filename = 'sample-report.html';
+  const sanitizedArtifacts = getSanitizedArtifacts(sampleData.artifacts);
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crypto Key Validator Report</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; }
-        .summary { background: white; margin: 20px 0; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .artifacts { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .artifact { border: 1px solid #ddd; margin: 10px 0; padding: 10px; border-radius: 4px; }
-        .valid { border-left: 4px solid #28a745; }
-        .bitcoin-only { color: #f39c12; font-weight: bold; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { text-align: left; padding: 8px; border-bottom: 1px solid #ddd; }
-        th { background-color: #f8f9fa; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crypto Key Validator Report</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; }
+    .summary { background: white; margin: 20px 0; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .artifacts { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .artifact { border: 1px solid #ddd; margin: 10px 0; padding: 10px; border-radius: 4px; }
+    .valid { border-left: 4px solid #28a745; }
+    .bitcoin-only { color: #f39c12; font-weight: bold; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 8px; border-bottom: 1px solid #ddd; }
+    th { background-color: #f8f9fa; }
+  </style>
 </head>
 <body>
-    <div class="header">
-        <h1>🔍 Crypto Key Validator Report</h1>
-        <p>Generated: ${sampleData.reportMetadata.generatedAt}</p>
-        <p><span class="bitcoin-only">Bitcoin-Only Analysis</span> | Offline Mode</p>
-    </div>
+  <div class="header">
+    <h1>🔍 Crypto Key Validator Report</h1>
+    <p>Generated: ${sampleData.reportMetadata.generatedAt}</p>
+    <p><span class="bitcoin-only">Bitcoin-Only Analysis</span> | Offline Mode</p>
+  </div>
     
-    <div class="summary">
-        <h2>📊 Summary</h2>
-        <table>
-            <tr><th>Total Artifacts</th><td>${sampleData.summary.totalArtifacts}</td></tr>
-            <tr><th>Valid Artifacts</th><td>${sampleData.summary.validArtifacts}</td></tr>
-            <tr><th>Addresses Found</th><td>${sampleData.summary.addressCount}</td></tr>
-            <tr><th>Private Keys Found</th><td>${sampleData.summary.privateKeyCount}</td></tr>
-            <tr><th>Seed Phrases Found</th><td>${sampleData.summary.seedPhraseCount}</td></tr>
-            <tr><th>Balance Total</th><td>${sampleData.summary.balanceTotal}</td></tr>
-        </table>
-    </div>
+  <div class="summary">
+    <h2>📊 Summary</h2>
+    <table>
+      <tr><th>Total Artifacts</th><td>${sampleData.summary.totalArtifacts}</td></tr>
+      <tr><th>Valid Artifacts</th><td>${sampleData.summary.validArtifacts}</td></tr>
+      <tr><th>Addresses Found</th><td>${sampleData.summary.addressCount}</td></tr>
+      <tr><th>Private Keys Found</th><td>${sampleData.summary.privateKeyCount}</td></tr>
+      <tr><th>Seed Phrases Found</th><td>${sampleData.summary.seedPhraseCount}</td></tr>
+      <tr><th>Balance Total</th><td>${sampleData.summary.balanceTotal}</td></tr>
+    </table>
+  </div>
     
-    <div class="artifacts">
-        <h2>🔐 Artifacts Found</h2>
-        ${sampleData.artifacts.map(artifact => `
-            <div class="artifact valid">
-                <h3>${artifact.subtype}</h3>
-                <p><strong>Type:</strong> ${artifact.type}</p>
-                <p><strong>Status:</strong> ${artifact.validationStatus}</p>
-                <p><strong>Network:</strong> ${artifact.metadata.cryptocurrency.name} ${artifact.metadata.cryptocurrency.network}</p>
-                <p><strong>Source:</strong> ${artifact.source.type}</p>
-                <p><strong>Raw:</strong> ${artifact.raw}</p>
-            </div>
-        `).join('')}
-    </div>
+  <div class="artifacts">
+    <h2>🔐 Artifacts Found</h2>
+    ${sanitizedArtifacts.map(artifact => `
+      <div class="artifact valid">
+        <h3>${artifact.subtype}</h3>
+        <p><strong>Type:</strong> ${artifact.type}</p>
+        <p><strong>Status:</strong> ${artifact.validationStatus}</p>
+        <p><strong>Network:</strong> ${artifact.metadata.cryptocurrency.name} ${artifact.metadata.cryptocurrency.network}</p>
+        <p><strong>Source:</strong> ${artifact.source.type}</p>
+        <p><strong>Raw:</strong> ${artifact.raw}</p>
+      </div>
+    `).join('')}
+  </div>
     
-    <div class="summary">
-        <h2>ℹ️ Information</h2>
-        <p>This is a sample report demonstrating the output format of the Crypto Key Validator.</p>
-        <p><strong>Bitcoin-Only:</strong> This tool exclusively analyzes Bitcoin artifacts and does not support other cryptocurrencies.</p>
-        <p><strong>Offline Mode:</strong> Balance checking is disabled for security and offline operation.</p>
-        <p><strong>Security:</strong> In real reports, private keys and seed phrases would be truncated for security.</p>
-    </div>
+  <div class="summary">
+    <h2>ℹ️ Information</h2>
+    <p>This is a sample report demonstrating the output format of the Crypto Key Validator.</p>
+    <p><strong>Bitcoin-Only:</strong> This tool exclusively analyzes Bitcoin artifacts and does not support other cryptocurrencies.</p>
+    <p><strong>Offline Mode:</strong> Balance checking is disabled for security and offline operation.</p>
+    <p><strong>Security:</strong> Private keys and seed phrases are truncated for security in all output formats.</p>
+  </div>
 </body>
 </html>`;
-  
   fs.writeFileSync(filename, html);
   console.log(`✅ Generated HTML report: ${filename}`);
 }

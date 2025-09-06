@@ -9,7 +9,7 @@ The **Crypto Key Validator** is an offline-capable desktop application built wit
 - **core-engine**: TypeScript library containing all Bitcoin validation logic
 - **app-electron**: Electron + React GUI that consumes the core engine
 
-**Bitcoin-Only Focus**: This project exclusively supports Bitcoin and its networks (mainnet, testnet, signet, regtest). Do not add support for other cryptocurrencies per project requirements.
+**Bitcoin-Only Focus**: This project exclusively supports Bitcoin and its networks (mainnet, testnet, signet, regtest). Do not add support for other cryptocurrencies. Remove any legacy code or references to Ethereum, Monero, or other coins.
 
 ## Repository Structure
 

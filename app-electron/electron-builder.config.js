@@ -9,16 +9,19 @@ module.exports = {
   },
   
   files: [
-    'dist/**/*',
-    'node_modules/**/*',
-    '!node_modules/**/{CHANGELOG.md,README.md,README,readme.md,readme}',
-    '!node_modules/**/{test,__tests__,tests,powered-test,example,examples}',
-    '!node_modules/**/*.d.ts',
-    '!node_modules/**/{*.map,*.flow}',
-    '!**/node_modules/*/{man,doc,docs}',
+    "dist/main/main.js",
+    "dist/preload/preload.js",
+    "dist/renderer/**/*",
+    "node_modules/**/*",
+    "package.json"
   ],
   
   extraResources: [
+    {
+      from: 'dist',
+      to: 'dist',
+      filter: ['**/*']
+    },
     {
       from: '../assets',
       to: 'assets',

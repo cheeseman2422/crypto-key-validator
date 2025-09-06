@@ -30,12 +30,26 @@ declare global {
   }
 }
 
-const root = ReactDOM.createRoot(
-  document.getElementById('root') as HTMLElement
-);
+const rootElem = document.getElementById('root') as HTMLElement;
+const root = ReactDOM.createRoot(rootElem);
 
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+function showErrorOverlay(error: any) {
+  rootElem.innerHTML = `<div style="color:red;font-size:2em;padding:2em;text-align:center;">Renderer error:<br>${error?.message || error}</div>`;
+}
+
+window.addEventListener('error', (e) => {
+  showErrorOverlay(e.error || e.message);
+});
+window.addEventListener('unhandledrejection', (e) => {
+  showErrorOverlay(e.reason || e);
+});
+
+try {
+  root.render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
+} catch (err) {
+  showErrorOverlay(err);
+}

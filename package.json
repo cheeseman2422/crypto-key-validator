@@ -9,8 +9,8 @@
   ],
   "scripts": {
     "dev": "pnpm run --parallel dev",
-    "build": "pnpm run --parallel build",
-    "build:appimage": "pnpm build && electron-builder --linux AppImage",
+    "build": "corepack pnpm run --parallel build",
+    "build:appimage": "corepack pnpm build && electron-builder --linux AppImage",
     "build:deb": "pnpm build && electron-builder --linux deb",
     "build:rpm": "pnpm build && electron-builder --linux rpm",
     "build:snap": "pnpm build && electron-builder --linux snap",
@@ -25,7 +25,7 @@
   },
   "main": "app-electron/dist/main/main.js",
   "homepage": "https://github.com/yourusername/crypto-key-validator",
-  "build": {
+  "electronBuilder": {
     "appId": "com.forensics.crypto-key-validator",
     "productName": "Crypto Key Validator",
     "copyright": "Copyright © 2024 Forensics Team. All rights reserved.",
@@ -38,6 +38,7 @@
       "app-electron/dist/**/*",
       "core-engine/dist/**/*",
       "node_modules/**/*",
+      "app-electron/node_modules/**/*",
       "!node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
       "!node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
       "!node_modules/*.d.ts",
@@ -65,19 +66,27 @@
       "target": [
         {
           "target": "AppImage",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "deb",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "rpm",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "snap",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "maintainer": "forensics-team@example.com",
@@ -88,15 +97,20 @@
       "description": "Professional cryptocurrency validation tool for forensics and wallet recovery. Validates Bitcoin addresses, private keys, and seed phrases completely offline.",
       "grade": "stable",
       "confinement": "strict",
-      "plugs": ["home", "removable-media", "desktop", "desktop-legacy"]
+      "plugs": [
+        "home",
+        "removable-media",
+        "desktop",
+        "desktop-legacy"
+      ]
     }
   },
   "devDependencies": {
     "@types/electron": "^1.6.12",
-    "@types/node": "^20.19.11",
+    "@types/node": "^20.19.13",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
-    "electron": "^37.3.1",
+    "electron": "^37.4.0",
     "electron-builder": "^24.13.3",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^9.1.2",
