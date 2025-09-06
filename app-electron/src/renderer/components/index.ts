@@ -614,7 +614,12 @@ export function ProgressModal({ progress, onClose }: {
           className: 'btn-primary'
         }, 'View Results'),
         progress.phase !== 'completed' && progress.phase !== 'error' && React.createElement('button', {
-          onClick: () => {/* TODO: Implement cancel */},
+          onClick: () => {
+            if (confirm('Are you sure you want to cancel the scan?')) {
+              window.cryptoValidator?.cancelScan?.();
+              onClose();
+            }
+          },
           className: 'btn-secondary text-sm'
         }, 'Cancel')
       ])

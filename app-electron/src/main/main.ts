@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog, Menu, shell } from 'electron';
 import { join } from 'path';
-import Store from 'electron-store';
+import Store, { Schema } from 'electron-store';
 import { CryptoKeyValidatorEngine, AppConfiguration } from '@crypto-validator/core-engine';
 
 // Security: Disable node integration in renderer
@@ -20,7 +20,7 @@ interface StoreSchema {
 class CryptoKeyValidatorApp {
   private mainWindow: BrowserWindow | null = null;
   private engine: CryptoKeyValidatorEngine | null = null;
-  private store: Store<StoreSchema>;
+  private store: any;
   
   constructor() {
     // Initialize persistent store
@@ -356,10 +356,6 @@ class CryptoKeyValidatorApp {
       this.engine.clearAll();
     });
 
-    ipcMain.handle('engine-get-blockchain-status', async () => {
-      if (!this.engine) throw new Error('Engine not initialized');
-      return this.engine.getBlockchainDataStatus();
-    });
 
     // Configuration
     ipcMain.handle('get-config', () => {
@@ -377,7 +373,7 @@ class CryptoKeyValidatorApp {
 
     ipcMain.handle('add-recent-file', (_, filePath: string) => {
       const recent = this.store.get('recentFiles');
-      const updated = [filePath, ...recent.filter(f => f !== filePath)].slice(0, 10);
+      const updated = [filePath, ...recent.filter((f: string) => f !== filePath)].slice(0, 10);
       this.store.set('recentFiles', updated);
       return updated;
     });

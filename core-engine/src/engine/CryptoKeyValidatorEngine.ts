@@ -18,18 +18,14 @@ import {
 } from '../types';
 
 import CryptoValidator from '../validation/CryptoValidator';
-import OfflineBalanceChecker, { BlockchainDataManager } from '../balance/OfflineBalanceChecker';
 import InputParser from '../parsing/InputParser';
 import SecurityManager from '../security/SecurityManager';
 import { ArtifactDiscovery } from '../discovery/ArtifactDiscovery';
 
 export class CryptoKeyValidatorEngine extends EventEmitter {
   private validator: CryptoValidator;
-  // Offline balance checking is disabled for offline-only mode
-  private balanceChecker: OfflineBalanceChecker;
   private inputParser: InputParser;
   private securityManager: SecurityManager;
-  private blockchainManager: BlockchainDataManager;
   private artifactDiscovery: ArtifactDiscovery;
   
   private artifacts: Map<string, Artifact> = new Map();
@@ -68,8 +64,6 @@ export class CryptoKeyValidatorEngine extends EventEmitter {
     this.validator = new CryptoValidator();
     this.inputParser = new InputParser();
     this.securityManager = new SecurityManager(config.security);
-    this.blockchainManager = new BlockchainDataManager(config.offline.blockchainDataPath);
-    this.balanceChecker = new OfflineBalanceChecker(config.offline.blockchainDataPath);
     this.artifactDiscovery = new ArtifactDiscovery();
   }
 
@@ -91,13 +85,10 @@ export class CryptoKeyValidatorEngine extends EventEmitter {
         this.emit('security-warning', securityCheck.issues);
       }
 
-      // Skip balance checker initialization for offline-only mode
-      // await this.balanceChecker.initialize();
       
       this.isInitialized = true;
       this.emit('initialization-complete');
       
-      console.log('CryptoKeyValidatorEngine initialized successfully');
     } catch (error) {
       this.emit('initialization-error', error);
       throw new Error(`Engine initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -134,7 +125,6 @@ export class CryptoKeyValidatorEngine extends EventEmitter {
       
       // Store artifacts with error handling
       const storedCount = this.storeArtifactsWithErrorHandling(artifacts);
-      console.log(`Stored ${storedCount}/${artifacts.length} artifacts successfully`);
       
       this.scanProgress.artifactsFound = artifacts.length;
       this.emit('scan-progress', { ...this.scanProgress });
@@ -142,11 +132,6 @@ export class CryptoKeyValidatorEngine extends EventEmitter {
       // Validate artifacts with enhanced error handling
       await this.validateArtifactsWithRetry(artifacts);
       
-      // Check balances for valid artifacts (if enabled)
-      const validArtifacts = artifacts.filter(a => a.validationStatus === ValidationStatus.VALID);
-      if (validArtifacts.length > 0) {
-        await this.checkBalances(validArtifacts);
-      }
       
       this.performanceMetrics.fileProcessingTime = Date.now() - startTime;
       this.completeScan();
@@ -182,13 +167,11 @@ export class CryptoKeyValidatorEngine extends EventEmitter {
       artifacts = this.inputParser.parseDirectInput(sanitizedInput);
       
       if (artifacts.length === 0) {
-        console.log('No cryptocurrency artifacts detected in input');
         return [];
       }
       
       // Store artifacts with error handling
       const storedCount = this.storeArtifactsWithErrorHandling(artifacts);
-      console.log(`Processed ${storedCount}/${artifacts.length} artifacts from direct input`);
       
       // Validate artifacts with enhanced error handling
       await this.validateArtifactsWithRetry(artifacts);
@@ -230,7 +213,6 @@ export class CryptoKeyValidatorEngine extends EventEmitter {
       this.startScan('deep_forensic');
       this.scanProgress.phase = ScanPhase.SCANNING;
       
-      console.log(`🔍 Starting deep forensic scan of: ${targetPath}`);
       this.startMemoryMonitoring();
       
       // Use advanced discovery engine
@@ -249,21 +231,11 @@ export class CryptoKeyValidatorEngine extends EventEmitter {
       for (const result of discoveryResults) {
         allArtifacts.push(...result.artifacts);
         
-        // Log interesting findings
-        if (result.metadata.scanType === 'hex_carving' && result.artifacts.length > 0) {
-          console.log(`🔥 Hex carved ${result.artifacts.length} artifacts from ${result.metadata.dataSource}`);
-        }
-        if (result.metadata.scanType === 'sqlite_scan' && result.artifacts.length > 0) {
-          console.log(`💾 Found ${result.artifacts.length} artifacts in database ${result.metadata.dataSource}`);
-        }
-        if (result.metadata.confidence > 0.8) {
-          console.log(`⭐ High confidence (${(result.metadata.confidence * 100).toFixed(0)}%) discovery: ${result.metadata.context}`);
-        }
+        // Log interesting findings silently
       }
       
       // Store all discovered artifacts
       const storedCount = this.storeArtifactsWithErrorHandling(allArtifacts);
-      console.log(`📦 Stored ${storedCount}/${allArtifacts.length} discovered artifacts`);
       
       this.scanProgress.artifactsFound = allArtifacts.length;
       this.emit('scan-progress', { ...this.scanProgress });
@@ -273,9 +245,6 @@ export class CryptoKeyValidatorEngine extends EventEmitter {
       
       this.performanceMetrics.fileProcessingTime = Date.now() - startTime;
       this.completeScan();
-      
-      const validCount = allArtifacts.filter(a => a.validationStatus === ValidationStatus.VALID).length;
-      console.log(`✅ Deep forensic scan completed! Found ${validCount}/${allArtifacts.length} valid Bitcoin artifacts`);
       
       return allArtifacts;
       
@@ -297,15 +266,6 @@ export class CryptoKeyValidatorEngine extends EventEmitter {
     await this.validateArtifactsWithRetry(artifacts);
   }
 
-  /**
-   * Check balances for valid artifacts
-   * DISABLED: Balance checking is disabled in offline-only mode
-   */
-  private async checkBalances(artifacts: Artifact[]): Promise<void> {
-    // Balance checking is fully disabled for offline-only operation
-    console.log('Balance checking disabled - offline-only mode');
-    return;
-  }
 
   /**
    * Get all artifacts
@@ -391,12 +351,6 @@ export class CryptoKeyValidatorEngine extends EventEmitter {
     this.emit('data-cleared');
   }
 
-  /**
-   * Get blockchain data status
-   */
-  getBlockchainDataStatus(): { [key: string]: { exists: boolean; size?: number; lastModified?: Date } } {
-    return this.blockchainManager.getDataStatus();
-  }
 
   /**
    * Shutdown the engine
@@ -408,13 +362,9 @@ export class CryptoKeyValidatorEngine extends EventEmitter {
       // Clear sensitive data
       this.securityManager.clearAll();
       
-      // Skip balance checker close (disabled)
-      // await this.balanceChecker.close();
       
       this.isInitialized = false;
       this.emit('shutdown-complete');
-      
-      console.log('CryptoKeyValidatorEngine shut down successfully');
     } catch (error) {
       console.error('Engine shutdown failed:', error);
       throw error;

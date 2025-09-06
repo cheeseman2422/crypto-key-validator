@@ -83,7 +83,6 @@ export class ArtifactDiscovery {
   } = {}): Promise<DiscoveryResult[]> {
     const results: DiscoveryResult[] = [];
     
-    console.log(`🔍 Starting comprehensive artifact discovery on: ${targetPath}`);
     
     if (!fs.existsSync(targetPath)) {
       throw new Error(`Target path does not exist: ${targetPath}`);
@@ -100,7 +99,6 @@ export class ArtifactDiscovery {
       results.push(...dirResults);
     }
     
-    console.log(`✅ Discovery completed. Found ${results.reduce((sum, r) => sum + r.artifacts.length, 0)} total artifacts`);
     return results;
   }
 
@@ -120,7 +118,6 @@ export class ArtifactDiscovery {
         return results;
       }
       
-      console.log(`📄 Scanning: ${fileName} (${this.formatBytes(stats.size)})`);
       
       // 1. Text-based scanning (fastest)
       if (this.isTextFile(fileExt) || !options.skipBinaries) {

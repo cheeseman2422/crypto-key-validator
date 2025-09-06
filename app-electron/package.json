@@ -15,8 +15,7 @@
     "start": "electron .",
     "electron": "electron .",
     "pack": "electron-builder --publish=never",
-    "dist": "electron-builder",
-    "postinstall": "electron-builder install-app-deps"
+    "dist": "electron-builder"
   },
   "dependencies": {
     "@crypto-validator/core-engine": "file:../core-engine",
@@ -25,18 +24,14 @@
     "bitcoinjs-lib": "^6.1.5",
     "bs58": "^5.0.0",
     "chokidar": "^3.5.3",
-    "conf": "^14.0.0",
-    "dot-prop": "^9.0.0",
-    "ecpair": "^2.1.0",
-    "electron-store": "^8.2.0",
+    "ecpair": "^3.0.0",
+    "electron-store": "^10.1.0",
     "electron-util": "^0.18.1",
-    "env-paths": "^3.0.0",
     "fs-extra": "^11.3.1",
     "keytar": "^7.9.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "sqlite3": "5.0.2",
-    "tiny-secp256k1": "^2.2.3"
+    "tiny-secp256k1": "^2.2.4"
   },
   "devDependencies": {
     "@heroicons/react": "^2.0.18",
@@ -55,7 +50,7 @@
     "vite": "^5.0.4"
   },
   "build": {
-  "appId": "com.crypto-key-validator",
+    "appId": "com.crypto-key-validator",
     "productName": "Crypto Key Validator",
     "directories": {
       "output": "release"

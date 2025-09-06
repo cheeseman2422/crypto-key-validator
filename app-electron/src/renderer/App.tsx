@@ -4,7 +4,6 @@ import { Header } from './components/Header';
 import { MainContent } from './components/MainContent';
 import { ProgressModal, Toast } from './components/index';
 import { useAppState } from './hooks/useAppState';
-import { useEngineEvents } from './hooks/useEngineEvents';
 
 function App() {
   const { 
@@ -15,16 +14,42 @@ function App() {
     refreshData,
     toast,
     showToast,
-    hideToast
+    hideToast,
+    handleScanStarted,
+    handleScanProgress,
+    handleScanCompleted,
+    handleScanError
   } = useAppState();
-
-  // Set up engine event listeners for progress updates
-  const { setupEventListeners } = useEngineEvents();
 
   useEffect(() => {
     refreshData(); // Load initial data
-    setupEventListeners(); // Connect to engine events
-  }, [refreshData, setupEventListeners]);
+    
+    // Set up engine event listeners directly to use the correct state
+    if (window.cryptoValidator) {
+      window.cryptoValidator.onEngineEvent((event: string, data?: any) => {
+        switch (event) {
+          case 'scan-started':
+            handleScanStarted();
+            break;
+          case 'scan-progress':
+            handleScanProgress(data);
+            break;
+          case 'scan-completed':
+            handleScanCompleted();
+            break;
+          case 'scan-error':
+            handleScanError(data);
+            break;
+          case 'artifact-validated':
+            // Handle if needed
+            break;
+          case 'balance-found':
+            // Handle if needed (disabled in offline mode)
+            break;
+        }
+      });
+    }
+  }, [refreshData, handleScanStarted, handleScanProgress, handleScanCompleted, handleScanError]);
 
   return (
     <div className="flex h-screen bg-crypto-dark text-white overflow-hidden">

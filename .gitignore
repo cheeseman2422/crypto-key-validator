@@ -12,7 +12,6 @@ dist/
 .DS_Store
 Thumbs.db
 # Dependencies
-node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -82,14 +81,10 @@ jspm_packages/
 
 # Nuxt.js build / generate output
 .nuxt
-dist
 
 # Storybook build outputs
 .out
 .storybook-out
-
-# rollup.js default build output
-dist/
 
 # Temporary folders
 tmp/
@@ -106,10 +101,6 @@ logs
 *.swo
 *~
 
-# OS
-.DS_Store
-Thumbs.db
-
 # Custom
 *.bak
 *.orig
@@ -120,7 +111,3 @@ Thumbs.db
 *secret*
 *wallet*
 *.key
-app-electron/release/
-app-electron/squashfs-root/
-dist-packages/linux-unpacked/
-dist-packages/

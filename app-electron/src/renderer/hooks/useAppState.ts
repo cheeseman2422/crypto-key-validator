@@ -114,12 +114,10 @@ export function useAppState() {
 
   const handleArtifactValidated = useCallback((data: any) => {
     // Could update individual artifact status here
-    console.log('Artifact validated:', data);
   }, []);
 
   const handleBalanceFound = useCallback((data: any) => {
     // Balance checking is disabled in offline mode
-    console.log('Balance found event received but balance checking is disabled');
   }, []);
 
   return {

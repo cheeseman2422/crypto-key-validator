@@ -14,7 +14,6 @@ interface CryptoValidatorAPI {
   getArtifacts: () => Promise<any[]>;
   getStatistics: () => Promise<any>;
   clearAll: () => Promise<void>;
-  getBlockchainStatus: () => Promise<any>;
 
   // Configuration
   getConfig: () => Promise<any>;
@@ -46,7 +45,6 @@ const api: CryptoValidatorAPI = {
   getArtifacts: () => ipcRenderer.invoke('engine-get-artifacts'),
   getStatistics: () => ipcRenderer.invoke('engine-get-statistics'),
   clearAll: () => ipcRenderer.invoke('engine-clear-all'),
-  getBlockchainStatus: () => ipcRenderer.invoke('engine-get-blockchain-status'),
 
   // Configuration
   getConfig: () => ipcRenderer.invoke('get-config'),

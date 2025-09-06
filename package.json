@@ -15,9 +15,6 @@
     "build:rpm": "pnpm build && electron-builder --linux rpm",
     "build:snap": "pnpm build && electron-builder --linux snap",
     "build:linux": "pnpm build && electron-builder --linux",
-    "build:win": "pnpm build && electron-builder --win",
-    "build:mac": "pnpm build && electron-builder --mac",
-    "build:all": "pnpm build && electron-builder --linux --win --mac",
     "dist": "pnpm build:linux",
     "build:production": "node scripts/build-production.js",
     "build:production:appimage": "node scripts/build-production.js appimage",
@@ -85,44 +82,6 @@
       ],
       "maintainer": "forensics-team@example.com",
       "vendor": "Forensics Team"
-    },
-    "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": ["x64"]
-        },
-        {
-          "target": "portable",
-          "arch": ["x64"]
-        }
-      ],
-      "publisherName": "Forensics Team",
-      "verifyUpdateCodeSignature": false
-    },
-    "mac": {
-      "category": "public.app-category.developer-tools",
-      "target": [
-        {
-          "target": "dmg",
-          "arch": ["x64", "arm64"]
-        },
-        {
-          "target": "zip",
-          "arch": ["x64", "arm64"]
-        }
-      ],
-      "hardenedRuntime": true,
-      "gatekeeperAssess": false,
-      "entitlements": "build-resources/entitlements.mac.plist",
-      "entitlementsInherit": "build-resources/entitlements.mac.plist"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "Crypto Key Validator"
     },
     "snap": {
       "summary": "Offline Bitcoin key validator and forensics tool",
