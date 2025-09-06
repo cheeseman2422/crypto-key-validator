@@ -353,7 +353,7 @@ export class CryptoValidator {
           result.isValid = this.validateBitcoinAddress(address, network);
           break;
         default:
-          result.errors.push(`Address validation not implemented for: ${crypto.name}. Only Bitcoin is supported.`);
+            result.errors.push(`Unsupported cryptocurrency: ${crypto.name}. Only Bitcoin is supported.`);
       }
 
       if (!result.isValid && result.errors.length === 0) {

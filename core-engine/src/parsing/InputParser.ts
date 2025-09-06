@@ -88,9 +88,21 @@ class InputParser {
   async parseFileSystem(rootPath: string, config: ScanConfiguration): Promise<Artifact[]> {
     const results: Artifact[] = [];
 
+    // Check if path exists
+    let stat: fs.Stats;
+    try {
+      stat = await fs.promises.stat(rootPath);
+    } catch {
+      throw new Error('Path does not exist');
+    }
+    if (!stat.isDirectory()) {
+      throw new Error('Path is not a directory');
+    }
+
     const shouldExclude = (p: string) => {
       if (!config.excludePaths) return false;
-      return config.excludePaths.some(ex => p.startsWith(ex));
+      // Exclude if any part of the path contains the excluded path
+      return config.excludePaths.some(ex => p.includes(ex));
     };
 
     const shouldInclude = (p: string) => {
@@ -102,45 +114,44 @@ class InputParser {
     while (stack.length > 0) {
       const current = stack.pop() as string;
       if (shouldExclude(current) || !shouldInclude(current)) continue;
+      let currentStat: fs.Stats;
       try {
-        const stat = await fs.promises.stat(current);
-        if (stat.isDirectory()) {
-          const entries = await fs.promises.readdir(current, { withFileTypes: true });
-          for (const entry of entries) {
-            const full = path.join(current, entry.name);
-            if (entry.isDirectory()) {
-              stack.push(full);
-            } else if (entry.isFile()) {
-              // Filter by file size
-              if (config.maxFileSize && stat.size > config.maxFileSize) continue;
-              // Filter by extension if fileTypes provided
-              if (config.fileTypes && config.fileTypes.length > 0) {
-                const ext = path.extname(full).toLowerCase();
-                if (!config.fileTypes.includes(ext)) continue;
-              }
-              const artifacts = await this.parseFile(full, config);
-              if (artifacts.length) results.push(...artifacts);
-            }
-          }
-        } else if (stat.isFile()) {
-          if (config.maxFileSize && stat.size > config.maxFileSize) continue;
-          const artifacts = await this.parseFile(current, config);
-          if (artifacts.length) results.push(...artifacts);
-        }
+        currentStat = await fs.promises.stat(current);
       } catch (e) {
         console.warn(`Skipping path due to error: ${current}`, e);
+        continue;
+      }
+      if (currentStat.isDirectory()) {
+        const entries = await fs.promises.readdir(current, { withFileTypes: true });
+        for (const entry of entries) {
+          const full = path.join(current, entry.name);
+          if (entry.isDirectory()) {
+            stack.push(full);
+          } else if (entry.isFile()) {
+            // Filter by file size
+            const fileStat = await fs.promises.stat(full);
+            if (config.maxFileSize && fileStat.size > config.maxFileSize) continue;
+            // Filter by extension if fileTypes provided
+            if (config.fileTypes && config.fileTypes.length > 0) {
+              const ext = path.extname(full).toLowerCase();
+              if (!config.fileTypes.includes(ext)) continue;
+            }
+            if (shouldExclude(full)) continue;
+            const artifacts = await this.parseFile(full, config);
+            if (artifacts.length) results.push(...artifacts);
+          }
+        }
       }
     }
-
     return results;
   }
 
   // Parse known wallet file types
   private async parseWalletFile(filePath: string): Promise<Artifact[]> {
-    const artifacts: Artifact[] = [];
+  let walletArtifacts: Artifact[] = [];
     const fileName = path.basename(filePath).toLowerCase();
     const fileExt = path.extname(filePath).toLowerCase();
-  const walletTypes = bitcoinWalletTypes;
+    const walletTypes = bitcoinWalletTypes;
     for (const walletType of walletTypes) {
       let isMatch = false;
       if (walletType.files && walletType.files.includes(fileName)) {
@@ -150,7 +161,7 @@ class InputParser {
       }
       if (isMatch) {
         const stats = await fs.promises.stat(filePath);
-        artifacts.push({
+        walletArtifacts.push({
           id: crypto.randomUUID(),
           type: ArtifactType.WALLET_FILE,
           subtype: walletType.name,
@@ -173,7 +184,21 @@ class InputParser {
         });
       }
     }
-    return artifacts;
+    // Scan file content for addresses, keys, seed phrases
+    try {
+      const content = await fs.promises.readFile(filePath, 'utf8');
+      const found = this.parseDirectInput(content, SourceType.FILE_SYSTEM);
+      for (const artifact of found) {
+        artifact.source.path = filePath;
+        walletArtifacts.push(artifact);
+      }
+    } catch {}
+    // Remove duplicates by raw value and type
+    const unique = new Map<string, Artifact>();
+    for (const artifact of walletArtifacts) {
+      unique.set(artifact.type + ':' + artifact.raw, artifact);
+    }
+    return Array.from(unique.values());
   }
 
 
@@ -182,38 +207,85 @@ class InputParser {
    * Parse direct text input
    */
   parseDirectInput(input: string, sourceType: SourceType = SourceType.DIRECT_INPUT): Artifact[] {
-    const artifacts: Artifact[] = [];
+  const artifacts: Artifact[] = [];
+    const subtypeMap: Record<string, string> = {
+      legacyAddress: 'Legacy Address (P2PKH/P2SH)',
+      bech32Address: 'Bech32 Address (P2WPKH/P2WSH)',
+      taprootAddress: 'Taproot Address (P2TR)',
+      wifPrivateKey: 'WIF Private Key',
+      hexPrivateKey: 'Raw Hex Private Key',
+      seedPhrase: (input.split(/\s+/).length === 12) ? 'BIP39 Seed Phrase (12 words)' : (input.split(/\s+/).length === 24) ? 'BIP39 Seed Phrase (24 words)' : 'BIP39 Seed Phrase',
+    };
+  const parsedArtifacts: Artifact[] = [];
     for (const [cryptoType, pattern] of Object.entries(this.bitcoinPatterns)) {
       if (cryptoType === 'walletSignatures') continue;
-      const matches = input.match(pattern as RegExp);
-      if (matches) {
-        for (const match of matches) {
-          const artifactType = this.getArtifactTypeFromPattern(cryptoType);
-          const cryptocurrency: CryptocurrencyType = { name: 'Bitcoin', symbol: 'BTC', network: 'mainnet', coinType: 0 };
-          const artifact: Artifact = {
-            id: crypto.randomUUID(),
-            type: artifactType,
-            subtype: cryptoType,
-            raw: match,
-            source: {
-              type: sourceType,
-              path: 'direct_input'
-            },
-            metadata: {
-              cryptocurrency,
-              confidence: 0.8,
-              tags: [cryptoType, 'direct_input']
-            },
-            validationStatus: ValidationStatus.PENDING,
-            createdAt: new Date(),
-            updatedAt: new Date()
-          };
-          artifacts.push(artifact);
-          this.saveArtifactToDb(artifact);
+      let matches = input.match(pattern as RegExp);
+      if (!matches) continue;
+      let matchArr: string[] = Array.isArray(matches) ? matches : Array.from(matches ?? []);
+      // Special case: Taproot addresses are a subset of Bech32, so filter them out from Bech32 results
+      if (cryptoType === 'bech32Address') {
+        matchArr = matchArr.filter((m: string) => !/^bc1p/.test(m));
+      }
+      for (const match of matchArr) {
+        let artifactType: ArtifactType;
+        let subtype: string;
+        switch (cryptoType) {
+          case 'legacyAddress':
+            artifactType = ArtifactType.ADDRESS;
+            subtype = 'Legacy Address (P2PKH/P2SH)';
+            break;
+          case 'bech32Address':
+            artifactType = ArtifactType.ADDRESS;
+            subtype = 'Bech32 Address (P2WPKH/P2WSH)';
+            break;
+          case 'taprootAddress':
+            artifactType = ArtifactType.ADDRESS;
+            subtype = 'Taproot Address (P2TR)';
+            break;
+          case 'wifPrivateKey':
+            artifactType = ArtifactType.PRIVATE_KEY;
+            subtype = 'WIF Private Key';
+            break;
+          case 'hexPrivateKey':
+            artifactType = ArtifactType.PRIVATE_KEY;
+            subtype = 'Raw Hex Private Key';
+            break;
+          case 'seedPhrase': {
+            artifactType = ArtifactType.SEED_PHRASE;
+            const wordCount = match.trim().split(/\s+/).length;
+            if (wordCount === 12) subtype = 'BIP39 Seed Phrase (12 words)';
+            else if (wordCount === 24) subtype = 'BIP39 Seed Phrase (24 words)';
+            else subtype = 'BIP39 Seed Phrase';
+            break;
+          }
+          default:
+            artifactType = this.getArtifactTypeFromPattern(cryptoType);
+            subtype = cryptoType;
         }
+        const cryptocurrency: CryptocurrencyType = { name: 'Bitcoin', symbol: 'BTC', network: 'mainnet', coinType: 0 };
+        const artifact: Artifact = {
+          id: crypto.randomUUID(),
+          type: artifactType,
+          subtype,
+          raw: match,
+          source: {
+            type: sourceType,
+            path: sourceType === SourceType.DIRECT_INPUT ? 'direct_input' : ''
+          },
+          metadata: {
+            cryptocurrency,
+            confidence: 0.8,
+            tags: [cryptoType, sourceType === SourceType.DIRECT_INPUT ? 'direct_input' : 'file_system']
+          },
+          validationStatus: ValidationStatus.PENDING,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+    parsedArtifacts.push(artifact);
+        this.saveArtifactToDb(artifact);
       }
     }
-    return artifacts;
+  return parsedArtifacts;
   }
 
   /**

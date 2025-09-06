@@ -36,6 +36,9 @@ importers:
       '@types/electron':
         specifier: ^1.6.12
         version: 1.6.12
+      '@types/jest':
+        specifier: ^29.5.14
+        version: 29.5.14
       '@types/node':
         specifier: ^20.19.13
         version: 20.19.13
